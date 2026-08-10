@@ -1,4 +1,4 @@
-# LSD-Tector 1.0 — Software
+# LSD-Tector 1.1 — Software
 
 Este repositorio contiene todo el software necesario para replicar el sistema de monitoreo autónomo de aves LSD-Tector, desarrollado en el Laboratorio de Sistemas Dinámicos (LSD), Facultad de Ciencias Exactas y Naturales, Universidad de Buenos Aires.
 
@@ -247,10 +247,9 @@ FIRST_START = TRUE
 LAT=<latitud_inicial>
 LON=<longitud_inicial>
 
-CONSUMO_W = <potencia_consumida_estimada_en_W>
-CAPACIDAD_MAH = <capacidad_bateria_en_mAh>
-VOLTAJE_BATERIA = <voltaje_nominal_bateria>
-MARGEN_SEGURIDAD = <factor_de_seguridad>
+UMBRAL_BATERIA = <porcentaje_minimo_de_bateria>
+VENTANA_ACTIVA = NONE
+CIERRE_FORZADO = FALSE
 ```
 
 Descripción de cada parámetro y cómo completarlo:
@@ -259,12 +258,15 @@ Descripción de cada parámetro y cómo completarlo:
 |---|---|
 | `FIRST_START` | Mantener en `TRUE` para activar el modo hotspot en el primer arranque. Una vez configurada la red WiFi exitosamente, el sistema lo cambia automáticamente a `FALSE`. |
 | `LAT` y `LON` | Coordenadas geográficas del lugar de instalación. Pueden dejarse con valores aproximados ya que se actualizan automáticamente mediante geolocalización por IP al utilizar el modo hotspot. |
-| `CONSUMO_W` | Potencia consumida estimada del sistema durante una ventana de grabación, en W. Reemplazar por el valor medido del sistema. |
-| `CAPACIDAD_MAH` | Capacidad nominal de la batería en mAh. Reemplazar por la capacidad de la batería utilizada. |
-| `VOLTAJE_BATERIA` | Voltaje nominal de la batería en V. Para baterías LiPo de celda única, utilizar `3.7`. |
-| `MARGEN_SEGURIDAD` | Factor multiplicador aplicado al umbral de batería para garantizar margen de operación. Valor recomendado: `1.5`. |
+| `UMBRAL_BATERIA` | Porcentaje mínimo de batería. Toda ventana arranca siempre, sin importar el nivel de batería; este valor lo usa únicamente `chequeo_bateria.sh` para forzar un cierre anticipado si el nivel cae por debajo mientras la ventana está corriendo (ver más abajo). Valor recomendado: `15`. |
+| `VENTANA_ACTIVA` | Estado interno: `NONE`, `amanecer` o `atardecer`, según si hay una ventana de grabación corriendo. La actualizan automáticamente `inicio_*.sh` y `cierre_*.sh`; no editar a mano salvo para depurar. |
+| `CIERRE_FORZADO` | Estado interno: lo pone en `TRUE` `chequeo_bateria.sh` cuando detecta batería por debajo de `UMBRAL_BATERIA` con una ventana activa. `cierre_*.sh` lo consume y lo resetea a `FALSE`. No editar a mano salvo para depurar. |
 
 > **Importante:** respetar el formato de cada línea. Las variables `LAT` y `LON` no llevan espacios alrededor del signo `=`. El resto de las variables sí llevan espacios.
+
+**Mecanismo de corte por batería baja:** en vez de estimar de antemano cuánta batería va a consumir una ventana y decidir si arrancarla o no, el sistema siempre arranca la ventana y mide el nivel real de batería cada 5 minutos mientras está corriendo (`chequeo_bateria.sh`, agregado al crontab en el paso 14), cortándola apenas cae por debajo de `UMBRAL_BATERIA` sin esperar al horario de fin programado. Esto reemplaza al mecanismo anterior, que combinaba una fórmula de consumo estimado (`CONSUMO_W`/`CAPACIDAD_MAH`/`VOLTAJE_BATERIA`/`MARGEN_SEGURIDAD`) con un chequeo único al arranque de la ventana — un enfoque predictivo que en la práctica podía estar lejos del consumo real y que además no protegía contra una caída de batería a mitad de ventana.
+
+El WiFi se enciende al arrancar la ventana y queda activo durante toda la grabación (no se apaga hasta el cierre), para que el dispositivo esté conectado en la medida de lo posible mientras graba.
 
 **Editar `config_horarios.txt`:**
 
@@ -282,19 +284,16 @@ fin_atardecer = 19:00
 
 AUTO_SYNC=ON
 duracion_amanecer_sync=<duracion_en_horas>
-offset_amanecer_sync=<offset_en_minutos>
 duracion_atardecer_sync=<duracion_en_horas>
-offset_atardecer_sync=<offset_en_minutos>
 ```
 
 Descripción de cada parámetro y cómo completarlo:
 
 | Parámetro | Descripción |
 |---|---|
-| `inicio_amanecer`, `fin_amanecer`, `inicio_atardecer`, `fin_atardecer` | Los valores que se muestran son simplemente valores iniciales. Estos horarios se calculan y completan automáticamente con `astral` a partir de las coordenadas geográficas, las duraciones y los offsets configurados. |
+| `inicio_amanecer`, `fin_amanecer`, `inicio_atardecer`, `fin_atardecer` | Los valores que se muestran son simplemente valores iniciales. Estos horarios se calculan y completan automáticamente con `astral` a partir de las coordenadas geográficas y las duraciones configuradas. |
 | `AUTO_SYNC` | Mantener en `ON` para que el sistema recalcule automáticamente los horarios al final de cada ventana, usando la librería `astral` y las coordenadas del archivo `config_general.txt`. |
-| `duracion_amanecer_sync` y `duracion_atardecer_sync` | Duración en horas de cada ventana de grabación. Reemplazar por la duración deseada (por ejemplo, `2` para una ventana de 2 horas). |
-| `offset_amanecer_sync` y `offset_atardecer_sync` | Offset en minutos respecto al amanecer y atardecer astronómicos. Valores positivos retrasan el inicio de la ventana, negativos la adelantan. Si no se desea offset, utilizar `0`. |
+| `duracion_amanecer_sync` y `duracion_atardecer_sync` | Duración en horas de cada ventana de grabación. Reemplazar por la duración deseada (por ejemplo, `2` para una ventana de 2 horas). Es una duración máxima: la ventana puede cortarse antes si la batería cae por debajo de `UMBRAL_BATERIA`. |
 
 > **Importante:** respetar el formato de cada línea. Las primeras cuatro variables (`inicio_amanecer`, `fin_amanecer`, `inicio_atardecer`, `fin_atardecer`) llevan espacios alrededor del signo `=`. Las demás no llevan espacios.
 
@@ -388,7 +387,7 @@ sudo systemctl enable hotspot.service
 
 ### 14. Configurar el crontab
 
-El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado y, de ser así, ejecuta su rutina.
+El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa.
 
 Abrir el crontab del usuario `lsd`:
 
@@ -408,6 +407,7 @@ Al final del archivo, agregar las siguientes líneas:
 * * * * * /home/lsd/inicio_amanecer.sh
 * * * * * /home/lsd/inicio_atardecer.sh
 * * * * * python3 /home/lsd/check_button.py
+*/5 * * * * /home/lsd/chequeo_bateria.sh
 ```
 
 Guardar con **Ctrl+O**, Enter, y salir con **Ctrl+X**.
@@ -418,7 +418,7 @@ Verificar que las tareas quedaron registradas:
 crontab -l
 ```
 
-La salida debe mostrar las cinco líneas agregadas.
+La salida debe mostrar las seis líneas agregadas.
 
 Verificar también que el servicio cron está activo en el sistema:
 
@@ -476,6 +476,7 @@ Una vez completados todos los pasos de instalación, el dispositivo está listo 
    - El parámetro `FIRST_START` se cambia a `FALSE`.
    - El dispositivo programa la alarma para la próxima ventana de grabación y se apaga.
 7. Si la conexión falla, la red `BirdNET-Setup` vuelve a aparecer automáticamente. Reconectarse y reintentar con las credenciales correctas.
+8. Si nadie completa la configuración dentro de los 15 minutos posteriores a activar el hotspot, el dispositivo se apaga automáticamente para no drenar la batería en vano. `FIRST_START` sigue en `TRUE`, así que el hotspot vuelve a activarse en el próximo encendido manual (botón físico o desconectando/reconectando la batería).
 
 A partir de este momento, el dispositivo opera de forma completamente autónoma siguiendo el ciclo programado de ventanas de grabación.
 
@@ -485,5 +486,5 @@ A partir de este momento, el dispositivo opera de forma completamente autónoma 
 
 Una vez el dispositivo está en operación en campo, los archivos `config_horarios.txt` y `config_general.txt` en la carpeta `Laboratorio 6` de Google Drive pueden editarse desde cualquier lugar para modificar la configuración del dispositivo. Los cambios se aplican en el siguiente ciclo, cuando el dispositivo descarga la versión actualizada de Drive al final de la ventana de grabación.
 
-El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería, cantidad de detecciones registradas, y eventuales cancelaciones por nivel de batería insuficiente.
+El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 9) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
 

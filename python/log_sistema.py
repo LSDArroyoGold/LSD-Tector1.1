@@ -13,8 +13,6 @@ timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
 if evento == 'FIN':
 	detecciones = sys.argv[3] if len(sys.argv) > 3 else '0'
 	linea = f"[{timestamp}] FIN ventana {ventana} | Batería: {nivel}% | Detecciones subidas: {detecciones}\n"
-elif evento == 'CANCELADA':
-	linea = f"[{timestamp}] VENTANA cancelada - {ventana} | Batería: {nivel}%\n"
 elif evento == 'SIN_CONEXION':
 	detecciones = sys.argv[3] if len(sys.argv) > 3 else '0'
 	linea = f"[{timestamp}] FIN ventana {ventana} | SIN CONEXIÓN, archivos se subirán en la próxima ventana | Batería: {nivel}% | Detecciones: {detecciones}\n"

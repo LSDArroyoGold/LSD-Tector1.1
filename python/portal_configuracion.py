@@ -9,6 +9,9 @@ import os
 
 CONFIG_PATH = '/home/lsd/config_general.txt'
 
+TIMEOUT_SEGUNDOS = 900  # 15 min sin conexión exitosa: se apaga para no drenar batería
+EXIT_TIMEOUT = 2
+
 
 # ---------- UTILIDADES ----------
 
@@ -205,4 +208,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 if __name__ == '__main__':
     server = http.server.HTTPServer(('0.0.0.0', 5000), Handler)
     print("Portal de configuracion iniciado en puerto 5000")
+
+    threading.Timer(TIMEOUT_SEGUNDOS, lambda: os._exit(EXIT_TIMEOUT)).start()
+
     server.serve_forever()

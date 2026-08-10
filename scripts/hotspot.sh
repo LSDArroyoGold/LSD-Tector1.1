@@ -89,6 +89,20 @@ log "Hotspot activo en IP: $IP_HOTSPOT"
 sudo python3 /home/lsd/portal_configuracion.py
 EXIT_CODE=$?
 
+if [ $EXIT_CODE -eq 2 ]; then
+    log "Sin respuesta en el portal tras 15 minutos. Apagando para conservar batería."
+    sudo nmcli radio wifi off
+    python3 -c "
+import sys
+sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+from pijuice import PiJuice
+pj = PiJuice(1, 0x14)
+pj.power.SetPowerOff(30)
+"
+    sudo poweroff
+    exit 0
+fi
+
 if [ $EXIT_CODE -ne 0 ]; then
     log "Conexión fallida. Hotspot reactivado, esperando nuevas credenciales."
     exit 1
