@@ -131,15 +131,17 @@ Clonar este repositorio en la Raspberry Pi:
 
 ```bash
 cd /home/lsd
-git clone https://github.com/LSDArroyoGold/LSD-Tector-1.0.git
+git clone https://github.com/LSDArroyoGold/LSD-Tector1.1.git
 ```
+
+> **Importante:** el repositorio debe quedar clonado exactamente en `/home/lsd/LSD-Tector1.1/` — de ahí lee `actualizar_repo.sh` (ver paso 14) para autoactualizar el dispositivo en cada ventana. Si ya tenías un dispositivo desplegado con una versión anterior clonada en otra carpeta (por ejemplo `LSD-Tector-1.0`), clonar este repo nuevo en `/home/lsd/LSD-Tector1.1/` es un paso manual único; a partir de ahí las actualizaciones futuras llegan solas.
 
 Copiar los scripts y archivos de configuración a `/home/lsd/`:
 
 ```bash
-cp /home/lsd/LSD-Tector-1.0/scripts/* /home/lsd/
-cp /home/lsd/LSD-Tector-1.0/python/* /home/lsd/
-cp /home/lsd/LSD-Tector-1.0/config/* /home/lsd/
+cp /home/lsd/LSD-Tector1.1/scripts/* /home/lsd/
+cp /home/lsd/LSD-Tector1.1/python/* /home/lsd/
+cp /home/lsd/LSD-Tector1.1/config/* /home/lsd/
 chmod +x /home/lsd/*.sh
 ```
 
@@ -148,8 +150,8 @@ chmod +x /home/lsd/*.sh
 Copiar los archivos de servicio de systemd:
 
 ```bash
-sudo cp /home/lsd/LSD-Tector-1.0/systemd/sync-rtc.service /etc/systemd/system/
-sudo cp /home/lsd/LSD-Tector-1.0/systemd/hotspot.service /etc/systemd/system/
+sudo cp /home/lsd/LSD-Tector1.1/systemd/sync-rtc.service /etc/systemd/system/
+sudo cp /home/lsd/LSD-Tector1.1/systemd/hotspot.service /etc/systemd/system/
 ```
 
 Dar permisos correctos a los archivos de servicio:
@@ -432,6 +434,8 @@ La salida debe mostrar `active (running)`. Si no estuviera activo, iniciarlo y h
 sudo systemctl enable cron
 sudo systemctl start cron
 ```
+
+**Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`, que hace `git pull` sobre `/home/lsd/LSD-Tector1.1/` y, solo si trajo commits nuevos, vuelve a copiar `scripts/*.sh`, `python/*.py` y los `.service` de systemd a sus ubicaciones activas. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Como el repo es público, no requiere ninguna credencial en la Pi. Para publicar una actualización, simplemente hacer `git push` a la rama `main` de este repositorio — el dispositivo la va a levantar en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
 
 ### 15. Crear carpetas en Google Drive y subir archivos de configuración
 

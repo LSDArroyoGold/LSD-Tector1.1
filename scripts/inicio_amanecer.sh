@@ -29,4 +29,6 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 	rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
+
+	bash /home/lsd/actualizar_repo.sh
 fi
