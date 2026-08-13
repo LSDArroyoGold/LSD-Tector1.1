@@ -5,6 +5,7 @@ Before=cron.service
 
 [Service]
 Type=oneshot
+TimeoutStartSec=infinity
 ExecStart=/bin/bash /home/lsd/hotspot.sh
 RemainAfterExit=yes
 

@@ -79,7 +79,17 @@ def intentar_conexion(ssid, password):
 def reactivar_hotspot():
     subprocess.run(
         ['sudo', 'nmcli', 'device', 'wifi', 'hotspot',
-         'ifname', 'wlan0', 'ssid', 'Tector-Setup', 'password', 'birdnet123'],
+         'ifname', 'wlan0', 'ssid', 'BirdNET-Setup', 'password', 'birdnet123',
+         'con-name', 'Hotspot'],
+        capture_output=True, text=True
+    )
+    subprocess.run(
+        ['sudo', 'nmcli', 'connection', 'modify', 'Hotspot',
+         'ipv4.addresses', '192.168.4.1/24', 'ipv4.method', 'shared'],
+        capture_output=True, text=True
+    )
+    subprocess.run(
+        ['sudo', 'nmcli', 'connection', 'up', 'Hotspot'],
         capture_output=True, text=True
     )
 
@@ -177,7 +187,7 @@ HTML_ESPERA = """<!DOCTYPE html>
     <p>Para verificar el resultado:</p>
     <p>✅ Si la conexión fue <strong>exitosa</strong>: el archivo <strong>log_sistema.txt</strong>
     en Google Drive mostrará una entrada de conexión exitosa y el dispositivo se apagará automáticamente.</p>
-    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>Tector-Setup</strong>
+    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>BirdNET-Setup</strong>
     volverá a aparecer en tu lista de redes WiFi. Volvé a conectarte y reintentá.</p>
 </body>
 </html>"""
@@ -227,7 +237,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 
+TIMEOUT_SEGUNDOS = 15 * 60
+
+
+def apagar_por_timeout():
+    print("Sin respuesta en el portal tras 15 minutos. Cerrando.")
+    os._exit(2)
+
+
 if __name__ == '__main__':
     server = http.server.HTTPServer(('0.0.0.0', 5000), Handler)
+    timer = threading.Timer(TIMEOUT_SEGUNDOS, apagar_por_timeout)
+    timer.daemon = True
+    timer.start()
     print("Portal de configuracion iniciado en puerto 5000")
     server.serve_forever()

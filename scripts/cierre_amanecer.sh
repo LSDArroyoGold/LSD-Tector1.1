@@ -20,7 +20,6 @@ if [ "$HORA_ACTUAL" = "$HORARIO" ] || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VE
 	done
 
 	if ! ping -c 1 google.com &>/dev/null; then
-		sudo nmcli radio wifi off
 		find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.png" -delete
 		rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 		HORA_INICIO=$(awk -F'=' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
@@ -65,8 +64,6 @@ pj.power.SetPowerOff(30)
 	rclone copy gdrive:Laboratorio\ 6/config_horarios.txt /home/lsd/
 
 	rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
-
-	sudo nmcli radio wifi off
 
 	HORA_WAKE=$(awk -F' = ' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf

@@ -23,7 +23,6 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 	done
 	if ! ping -c 1 google.com &>/dev/null; then
 		echo "Sin conexión, abortando"
-		sudo nmcli radio wifi off
 		exit 1
 	fi
 	rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/

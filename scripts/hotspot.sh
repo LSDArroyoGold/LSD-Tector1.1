@@ -91,7 +91,6 @@ EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 2 ]; then
     log "Sin respuesta en el portal tras 15 minutos. Apagando para conservar batería."
-    sudo nmcli radio wifi off
     python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
@@ -156,7 +155,6 @@ log "Alarma programada para $HORA_WAKE. Apagando."
 
 # Subir log a Drive
 rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/
-sudo nmcli radio wifi off
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 

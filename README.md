@@ -272,7 +272,7 @@ Descripción de cada parámetro y cómo completarlo:
 
 **Mecanismo de corte por batería baja:** en vez de estimar de antemano cuánta batería va a consumir una ventana y decidir si arrancarla o no, el sistema siempre arranca la ventana y mide el nivel real de batería cada 5 minutos mientras está corriendo (`chequeo_bateria.sh`, agregado al crontab en el paso 14), cortándola apenas cae por debajo de `UMBRAL_BATERIA` sin esperar al horario de fin programado. Esto reemplaza al mecanismo anterior, que combinaba una fórmula de consumo estimado (`CONSUMO_W`/`CAPACIDAD_MAH`/`VOLTAJE_BATERIA`/`MARGEN_SEGURIDAD`) con un chequeo único al arranque de la ventana — un enfoque predictivo que en la práctica podía estar lejos del consumo real y que además no protegía contra una caída de batería a mitad de ventana.
 
-El WiFi se enciende al arrancar la ventana y queda activo durante toda la grabación (no se apaga hasta el cierre), para que el dispositivo esté conectado en la medida de lo posible mientras graba.
+El WiFi se enciende al arrancar la ventana y ya no se vuelve a apagar por software: queda activo de forma permanente (incluso después del cierre de la ventana), para que el dispositivo esté conectado en la medida de lo posible y sea posible reconectarse a él en cualquier momento.
 
 **Editar `config_horarios.txt`:**
 
