@@ -25,7 +25,7 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 		echo "Sin conexión, abortando"
 		exit 1
 	fi
-	rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
+	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 

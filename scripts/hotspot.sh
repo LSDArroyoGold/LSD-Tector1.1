@@ -128,7 +128,7 @@ log "Ubicación detectada: $LAT, $LON"
 sed -i 's/FIRST_START = TRUE/FIRST_START = FALSE/' "$CONFIG_PATH"
 
 bash /home/lsd/auto_sync_horarios.sh
-rclone copy /home/lsd/config_horarios.txt gdrive:Laboratorio\ 6/
+timeout 90 rclone copy /home/lsd/config_horarios.txt gdrive:Laboratorio\ 6/
 
 # Calcular próxima ventana (la más cercana a futuro)
 HORA_ACTUAL_MIN=$(date +%H%M | sed 's/^0*//')
@@ -154,7 +154,7 @@ python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 log "Alarma programada para $HORA_WAKE. Apagando."
 
 # Subir log a Drive
-rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/
+timeout 90 rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 

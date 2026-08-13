@@ -51,7 +51,7 @@ pj.power.SetPowerOff(30)
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
-	rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3"
+	timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3"
 
 	HORA_INICIO=$(awk -F'=' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 	HORA_FIN=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
@@ -61,9 +61,9 @@ pj.power.SetPowerOff(30)
 
 	bash /home/lsd/auto_sync_horarios.sh
 
-	rclone copy gdrive:Laboratorio\ 6/config_horarios.txt /home/lsd/
+	timeout 90 rclone copy gdrive:Laboratorio\ 6/config_horarios.txt /home/lsd/
 
-	rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
+	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
 
 	HORA_WAKE=$(awk -F' = ' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
