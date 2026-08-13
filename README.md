@@ -475,7 +475,7 @@ Una vez completados todos los pasos de instalación, el dispositivo está listo 
 
 1. Verificar que en `/home/lsd/config_general.txt` el parámetro `FIRST_START` está en `TRUE`.
 2. Encender la Raspberry Pi. Esperar aproximadamente 30 segundos a que el sistema arranque completamente y se active el servicio `hotspot.service`.
-3. Desde un celular o computadora, buscar redes WiFi disponibles. Conectarse a la red **BirdNET-Setup** con la contraseña `birdnet123`.
+3. Desde un celular o computadora, buscar redes WiFi disponibles. Conectarse a la red **LSD-Tector** con la contraseña `birdnet123`.
 4. Abrir un navegador web y navegar a `http://192.168.4.1:5000`. Se mostrará el portal de configuración.
 5. Seleccionar de la lista la red WiFi a la que se conectará el dispositivo en campo. Ingresar la contraseña correspondiente. Presionar **Conectar**.
 6. El dispositivo se desconecta del modo hotspot e intenta conectarse a la red indicada. Si la conexión es exitosa:
@@ -483,7 +483,7 @@ Una vez completados todos los pasos de instalación, el dispositivo está listo 
    - Los horarios de amanecer y atardecer se calculan y se escriben en `config_horarios.txt`.
    - El parámetro `FIRST_START` se cambia a `FALSE`.
    - El dispositivo programa la alarma para la próxima ventana de grabación y se apaga.
-7. Si la conexión falla, la red `BirdNET-Setup` vuelve a aparecer automáticamente. Reconectarse y reintentar con las credenciales correctas.
+7. Si la conexión falla, la red `LSD-Tector` vuelve a aparecer automáticamente. Reconectarse y reintentar con las credenciales correctas.
 8. Si nadie completa la configuración dentro de los 15 minutos posteriores a activar el hotspot, el dispositivo se apaga automáticamente para no drenar la batería en vano. `FIRST_START` sigue en `TRUE`, así que el hotspot vuelve a activarse en el próximo encendido manual (botón físico o desconectando/reconectando la batería).
 
 A partir de este momento, el dispositivo opera de forma completamente autónoma siguiendo el ciclo programado de ventanas de grabación.

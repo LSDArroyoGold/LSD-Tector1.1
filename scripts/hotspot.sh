@@ -62,7 +62,7 @@ levantar_hotspot() {
     sleep 1
     sudo pkill dnsmasq 2>/dev/null
     sleep 2
-    sudo nmcli device wifi hotspot ifname wlan0 ssid BirdNET-Setup password birdnet123 con-name Hotspot
+    sudo nmcli device wifi hotspot ifname wlan0 ssid LSD-Tector password birdnet123 con-name Hotspot
     sleep 3
     sudo nmcli connection modify Hotspot ipv4.addresses 192.168.4.1/24 ipv4.method shared
     sudo nmcli connection up Hotspot

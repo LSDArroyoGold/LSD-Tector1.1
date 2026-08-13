@@ -79,7 +79,7 @@ def intentar_conexion(ssid, password):
 def reactivar_hotspot():
     subprocess.run(
         ['sudo', 'nmcli', 'device', 'wifi', 'hotspot',
-         'ifname', 'wlan0', 'ssid', 'BirdNET-Setup', 'password', 'birdnet123',
+         'ifname', 'wlan0', 'ssid', 'LSD-Tector', 'password', 'birdnet123',
          'con-name', 'Hotspot'],
         capture_output=True, text=True
     )
@@ -187,7 +187,7 @@ HTML_ESPERA = """<!DOCTYPE html>
     <p>Para verificar el resultado:</p>
     <p>✅ Si la conexión fue <strong>exitosa</strong>: el archivo <strong>log_sistema.txt</strong>
     en Google Drive mostrará una entrada de conexión exitosa y el dispositivo se apagará automáticamente.</p>
-    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>BirdNET-Setup</strong>
+    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>LSD-Tector</strong>
     volverá a aparecer en tu lista de redes WiFi. Volvé a conectarte y reintentá.</p>
 </body>
 </html>"""
