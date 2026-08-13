@@ -223,7 +223,7 @@ Seguir el asistente interactivo con las siguientes respuestas:
 - Confirmar configuración: `y`
 - Salir del asistente: `q`
 
-> **Nota sobre `client_id` y `client_secret`:** dejarlos vacíos hace que rclone utilice las credenciales OAuth por defecto, que son compartidas entre todos los usuarios de rclone. En condiciones de uso intensivo esto puede ocasionalmente generar errores del tipo `429 Too Many Requests` por exceder los límites de cuota de Google. Para uso normal del LSD-Tector (subida de pocos archivos por día) esto no representa un problema. Si se desea utilizar credenciales propias, generar un Client ID y Client Secret en Google Cloud Console siguiendo la guía oficial de rclone: [https://rclone.org/drive/#making-your-own-client-id](https://rclone.org/drive/#making-your-own-client-id). 
+> **Nota sobre `client_id` y `client_secret`:** dejarlos vacíos hace que rclone utilice las credenciales OAuth por defecto, que son compartidas entre todos los usuarios de rclone. Esa cuota compartida es global (no depende de cuánto suba este dispositivo en particular) y en la práctica puede saturarse — ya pasó, dejando un `rclone copy` reintentando durante varios minutos con errores `403 rateLimitExceeded`. Todas las llamadas a `rclone` en este proyecto tienen un `timeout` de 90 segundos para que, si esto ocurre, el script en curso continúe igual (el archivo pendiente queda para la próxima sincronización) en vez de quedarse esperando indefinidamente. Si se desea eliminar esta dependencia de la cuota compartida, generar un Client ID y Client Secret propios en Google Cloud Console siguiendo la guía oficial de rclone: [https://rclone.org/drive/#making-your-own-client-id](https://rclone.org/drive/#making-your-own-client-id). 
 
 **Verificación**
 
@@ -393,7 +393,7 @@ sudo systemctl enable hotspot.service
 
 ### 14. Configurar el crontab
 
-El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa.
+El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube a Drive las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, por la cuota de Drive, ver la nota sobre `client_id`/`client_secret` en el paso 8), la mayoría de las detecciones ya están arriba de todas formas.
 
 Abrir el crontab del usuario `lsd`:
 
@@ -414,6 +414,7 @@ Al final del archivo, agregar las siguientes líneas:
 * * * * * /home/lsd/inicio_atardecer.sh
 * * * * * python3 /home/lsd/check_button.py
 */5 * * * * /home/lsd/chequeo_bateria.sh
+*/5 * * * * /home/lsd/sincronizar_detecciones.sh
 ```
 
 Guardar con **Ctrl+O**, Enter, y salir con **Ctrl+X**.
@@ -424,7 +425,7 @@ Verificar que las tareas quedaron registradas:
 crontab -l
 ```
 
-La salida debe mostrar las seis líneas agregadas.
+La salida debe mostrar las siete líneas agregadas.
 
 Verificar también que el servicio cron está activo en el sistema:
 
