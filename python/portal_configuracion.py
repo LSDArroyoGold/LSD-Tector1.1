@@ -9,9 +9,6 @@ import os
 
 CONFIG_PATH = '/home/lsd/config_general.txt'
 
-TIMEOUT_SEGUNDOS = 900  # 15 min sin conexión exitosa: se apaga para no drenar batería
-EXIT_TIMEOUT = 2
-
 
 # ---------- UTILIDADES ----------
 
@@ -47,15 +44,18 @@ def intentar_conexion(ssid, password):
     subprocess.run(['sudo', 'nmcli', 'connection', 'delete', ssid],
                    capture_output=True, text=True)
 
-    # Crear nueva conexión con key-mgmt explícito
+    # Crear nueva conexión. Si no hay contraseña, se arma sin seguridad (red abierta)
+    comando_add = ['sudo', 'nmcli', 'connection', 'add',
+                    'type', 'wifi',
+                    'ifname', 'wlan0',
+                    'con-name', ssid,
+                    'ssid', ssid]
+    if password:
+        comando_add += ['802-11-wireless-security.key-mgmt', 'wpa-psk',
+                         '802-11-wireless-security.psk', password]
+
     result_add = subprocess.run(
-        ['sudo', 'nmcli', 'connection', 'add',
-         'type', 'wifi',
-         'ifname', 'wlan0',
-         'con-name', ssid,
-         'ssid', ssid,
-         '802-11-wireless-security.key-mgmt', 'wpa-psk',
-         '802-11-wireless-security.psk', password],
+        comando_add,
         capture_output=True, text=True, timeout=30
     )
 
@@ -79,7 +79,7 @@ def intentar_conexion(ssid, password):
 def reactivar_hotspot():
     subprocess.run(
         ['sudo', 'nmcli', 'device', 'wifi', 'hotspot',
-         'ifname', 'wlan0', 'ssid', 'BirdNET-Setup', 'password', 'birdnet123'],
+         'ifname', 'wlan0', 'ssid', 'Tector-Setup', 'password', 'birdnet123'],
         capture_output=True, text=True
     )
 
@@ -89,15 +89,16 @@ def reactivar_hotspot():
 def generar_html_redes(redes):
     opciones = ''
     for ssid, signal, security in redes:
-        icono = '🔒 ' if security and security != '--' else ''
-        opciones += f'<option value="{ssid}">{icono}{ssid} ({signal}%)</option>\n'
+        abierta = not security or security == '--'
+        icono = '' if abierta else '🔒 '
+        opciones += f'<option value="{ssid}" data-abierta="{"1" if abierta else "0"}">{icono}{ssid} ({signal}%)</option>\n'
 
     return f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BirdNET Setup</title>
+    <title>Tector Setup</title>
     <style>
         body {{ font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }}
         select, input[type="text"], input[type="password"] {{
@@ -115,24 +116,45 @@ def generar_html_redes(redes):
             var pwd = document.getElementById('password');
             pwd.type = pwd.type === 'password' ? 'text' : 'password';
         }}
+
+        function actualizarCampoPassword() {{
+            var select = document.getElementById('ssid');
+            var opcion = select.options[select.selectedIndex];
+            var abierta = opcion && opcion.getAttribute('data-abierta') === '1';
+
+            var pwdWrap = document.getElementById('password-wrap');
+            var pwd = document.getElementById('password');
+
+            if (abierta) {{
+                pwdWrap.style.display = 'none';
+                pwd.required = false;
+                pwd.value = '';
+            }} else {{
+                pwdWrap.style.display = '';
+                pwd.required = true;
+            }}
+        }}
     </script>
 </head>
 <body>
-    <h1>BirdNET Setup</h1>
+    <h1>Tector Setup</h1>
     <p>Seleccioná la red WiFi a la que se conectará el dispositivo.</p>
     <form method="POST" action="/configurar">
         <label>Red WiFi disponible:</label>
-        <select name="ssid" required>
+        <select name="ssid" id="ssid" required onchange="actualizarCampoPassword()">
             {opciones}
         </select>
         <button type="button" class="refresh-btn" onclick="location.reload()">↻ Actualizar lista de redes</button>
-        <label>Contraseña:</label>
-        <input type="password" name="password" id="password" required>
-        <div class="checkbox-line">
-            <input type="checkbox" onclick="toggleMostrar()"> Mostrar contraseña
+        <div id="password-wrap">
+            <label>Contraseña:</label>
+            <input type="password" name="password" id="password" required>
+            <div class="checkbox-line">
+                <input type="checkbox" onclick="toggleMostrar()"> Mostrar contraseña
+            </div>
         </div>
         <button type="submit">Conectar</button>
     </form>
+    <script>actualizarCampoPassword();</script>
 </body>
 </html>"""
 
@@ -142,7 +164,7 @@ HTML_ESPERA = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BirdNET Setup</title>
+    <title>Tector Setup</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
         h1 { color: #333; }
@@ -155,7 +177,7 @@ HTML_ESPERA = """<!DOCTYPE html>
     <p>Para verificar el resultado:</p>
     <p>✅ Si la conexión fue <strong>exitosa</strong>: el archivo <strong>log_sistema.txt</strong>
     en Google Drive mostrará una entrada de conexión exitosa y el dispositivo se apagará automáticamente.</p>
-    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>BirdNET-Setup</strong>
+    <p>📶 Si la conexión <strong>falló</strong>: el hotspot <strong>Tector-Setup</strong>
     volverá a aparecer en tu lista de redes WiFi. Volvé a conectarte y reintentá.</p>
 </body>
 </html>"""
@@ -208,7 +230,4 @@ class Handler(http.server.BaseHTTPRequestHandler):
 if __name__ == '__main__':
     server = http.server.HTTPServer(('0.0.0.0', 5000), Handler)
     print("Portal de configuracion iniciado en puerto 5000")
-
-    threading.Timer(TIMEOUT_SEGUNDOS, lambda: os._exit(EXIT_TIMEOUT)).start()
-
     server.serve_forever()
