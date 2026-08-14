@@ -34,6 +34,11 @@ for ARCHIVO in $ARCHIVOS; do
 	fi
 done
 
+SELF_CAMBIO=0
+if [ ! -f /home/lsd/actualizar_repo.sh ] || ! cmp -s "$TMP/actualizar_repo.sh" /home/lsd/actualizar_repo.sh; then
+	SELF_CAMBIO=1
+fi
+
 # $TMP está en /home/lsd, mismo filesystem que los destinos: el mv es un
 # rename atómico, seguro incluso si el archivo que se reemplaza es el que
 # está corriendo en este momento (este mismo script, o el inicio_*.sh que
@@ -55,6 +60,18 @@ chmod +x /home/lsd/*.sh
 sudo systemctl daemon-reload
 
 rm -rf "$TMP"
+
+# Si actualizar_repo.sh cambió, la lista de $ARCHIVOS que acabamos de usar
+# para bajar todo puede ser la vieja (la que ya estaba cargada en memoria
+# al arrancar esta corrida) — por ejemplo, si el mismo commit que nos trajo
+# esta versión nueva también agregó un archivo a la lista. Nos volvemos a
+# ejecutar una vez con la versión ya instalada para completar el ciclo con
+# la lista correcta antes de marcar la actualización como terminada.
+# _REEXEC evita un bucle si por lo que sea el archivo siguiera "cambiando".
+if [ "$SELF_CAMBIO" = "1" ] && [ -z "$_REEXEC" ]; then
+	_REEXEC=1 exec bash /home/lsd/actualizar_repo.sh
+fi
+
 echo "$SHA_ACTUAL" > "$MARCA"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Repo actualizado a $SHA_ACTUAL" >> /home/lsd/log_sistema.txt
