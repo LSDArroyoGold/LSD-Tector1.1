@@ -57,7 +57,32 @@ PURGE_THRESHOLD=75
 ```
 Con esta configuración, cuando el disco supere el 75% de ocupación, BirdNET-Pi eliminará automáticamente las grabaciones del día más antiguo para liberar espacio. Guardar con **Ctrl+O** y salir con **Ctrl+X**.
 
-### 3. Paquetes del sistema
+### 3. Reducir el consumo de BirdNET-Pi para uso desatendido
+
+BirdNET-Pi instala por defecto un conjunto de servicios pensados para cuando alguien mira el dashboard desde el navegador en la misma red (streaming de audio en vivo, visor de espectrograma, gráficos, terminal web, panel de estadísticas). En un dispositivo desatendido en el campo no hay nadie mirando esos servicios, y miden un consumo real: apagarlos, junto con no arrancar el entorno gráfico de escritorio (que tampoco tiene sentido sin monitor conectado), midió una reducción de **~19% en el consumo instantáneo** en pruebas de campo — sin afectar la grabación, el análisis ni la subida a BirdWeather, que no dependen de ninguno de estos servicios.
+
+Deshabilitar los servicios de dashboard/streaming (quedan enmascarados, no se pueden arrancar ni por accidente):
+
+```bash
+sudo systemctl disable --now icecast2.service livestream.service chart_viewer.service \
+    spectrogram_viewer.service web_terminal.service caddy.service birdnet_stats.service \
+    birdnet_log.service php8.4-fpm.service
+sudo systemctl mask icecast2.service livestream.service chart_viewer.service \
+    spectrogram_viewer.service web_terminal.service caddy.service birdnet_stats.service \
+    birdnet_log.service php8.4-fpm.service
+```
+
+> **Nota:** `icecast2` y `php8.4-fpm` son scripts SysV, no unidades systemd nativas — si el `disable --now` no los frena del todo, parar el proceso a mano con `sudo systemctl stop icecast2.service` (o el que corresponda) y confirmar con `systemctl is-active`.
+
+Arrancar directamente en modo consola, sin sesión gráfica (la grabación y el análisis no dependen del escritorio — `birdnet_recording.sh` ya inicia su propio `pulseaudio` si hace falta):
+
+```bash
+sudo systemctl set-default multi-user.target
+```
+
+Si en algún momento hace falta conectar un monitor en el laboratorio para debug visual, activar el entorno gráfico puntualmente con `sudo systemctl isolate graphical.target` (no hace falta revertir el paso anterior; con el próximo reinicio vuelve a arrancar en modo consola).
+
+### 4. Paquetes del sistema
 
 ```bash
 sudo apt update
@@ -74,7 +99,7 @@ which hwclock
 
 Debe devolver `/usr/sbin/hwclock`.
 
-### 4. Habilitar I2C
+### 5. Habilitar I2C
 
 La PiJuice se comunica con la Raspberry Pi mediante el protocolo I2C. Para habilitarlo:
 
@@ -94,13 +119,13 @@ Verificar que la PiJuice es detectada correctamente en el bus I2C (debe aparecer
 sudo i2cdetect -y 1
 ```
 
-### 5. Dependencias Python
+### 6. Dependencias Python
 
 ```bash
 pip install astral --break-system-packages
 ```
 
-### 6. API Python de PiJuice
+### 7. API Python de PiJuice
 
 El paquete oficial de PiJuice no está disponible en los repositorios estándar de Raspberry OS. Instalarlo directamente desde GitHub:
 
@@ -125,7 +150,7 @@ print(pj.status.GetChargeLevel())
 
 Si la PiJuice responde sin errores, la instalación fue exitosa.
 
-### 7. Clonar el repositorio
+### 8. Clonar el repositorio
 
 Clonar este repositorio en la Raspberry Pi:
 
@@ -152,7 +177,7 @@ sudo cp /home/lsd/LSD-Tector1.1/systemd/sync-rtc.service /etc/systemd/system/
 sudo cp /home/lsd/LSD-Tector1.1/systemd/hotspot.service /etc/systemd/system/
 ```
 
-Una vez copiado todo, borrar el clon — en la Pi no queda ninguna carpeta del repositorio, todos los archivos operativos viven sueltos directamente en `/home/lsd/` (`actualizar_repo.sh`, ver paso 14, tampoco necesita el clon: se actualiza descargando archivo por archivo):
+Una vez copiado todo, borrar el clon — en la Pi no queda ninguna carpeta del repositorio, todos los archivos operativos viven sueltos directamente en `/home/lsd/` (`actualizar_repo.sh`, ver paso 15, tampoco necesita el clon: se actualiza descargando archivo por archivo):
 
 ```bash
 rm -rf /home/lsd/LSD-Tector1.1
@@ -171,7 +196,7 @@ Recargar la configuración de systemd para que reconozca los nuevos servicios:
 sudo systemctl daemon-reload
 ```
 
-### 8. rclone
+### 9. rclone
 
 Instalar rclone:
 
@@ -235,9 +260,9 @@ rclone lsd gdrive:
 
 Si el comando devuelve la lista de carpetas existentes en la cuenta de Google, la configuración fue exitosa.
 
-### 9. Archivos de configuración
+### 10. Archivos de configuración
 
-Los archivos `config_general.txt` y `config_horarios.txt` ya fueron copiados a `/home/lsd/` en el paso 7. Ahora hay que editarlos según las necesidades del dispositivo.
+Los archivos `config_general.txt` y `config_horarios.txt` ya fueron copiados a `/home/lsd/` en el paso 8. Ahora hay que editarlos según las necesidades del dispositivo.
 
 **Editar `config_general.txt`:**
 
@@ -270,7 +295,7 @@ Descripción de cada parámetro y cómo completarlo:
 
 > **Importante:** respetar el formato de cada línea. Las variables `LAT` y `LON` no llevan espacios alrededor del signo `=`. El resto de las variables sí llevan espacios.
 
-**Mecanismo de corte por batería baja:** en vez de estimar de antemano cuánta batería va a consumir una ventana y decidir si arrancarla o no, el sistema siempre arranca la ventana y mide el nivel real de batería cada 5 minutos mientras está corriendo (`chequeo_bateria.sh`, agregado al crontab en el paso 14), cortándola apenas cae por debajo de `UMBRAL_BATERIA` sin esperar al horario de fin programado. Esto reemplaza al mecanismo anterior, que combinaba una fórmula de consumo estimado (`CONSUMO_W`/`CAPACIDAD_MAH`/`VOLTAJE_BATERIA`/`MARGEN_SEGURIDAD`) con un chequeo único al arranque de la ventana — un enfoque predictivo que en la práctica podía estar lejos del consumo real y que además no protegía contra una caída de batería a mitad de ventana.
+**Mecanismo de corte por batería baja:** en vez de estimar de antemano cuánta batería va a consumir una ventana y decidir si arrancarla o no, el sistema siempre arranca la ventana y mide el nivel real de batería cada 5 minutos mientras está corriendo (`chequeo_bateria.sh`, agregado al crontab en el paso 15), cortándola apenas cae por debajo de `UMBRAL_BATERIA` sin esperar al horario de fin programado. Esto reemplaza al mecanismo anterior, que combinaba una fórmula de consumo estimado (`CONSUMO_W`/`CAPACIDAD_MAH`/`VOLTAJE_BATERIA`/`MARGEN_SEGURIDAD`) con un chequeo único al arranque de la ventana — un enfoque predictivo que en la práctica podía estar lejos del consumo real y que además no protegía contra una caída de batería a mitad de ventana.
 
 El WiFi se enciende al arrancar la ventana y ya no se vuelve a apagar por software: queda activo de forma permanente (incluso después del cierre de la ventana), para que el dispositivo esté conectado en la medida de lo posible y sea posible reconectarse a él en cualquier momento.
 
@@ -313,7 +338,7 @@ cat /home/lsd/config_horarios.txt
 ```
 
 Revisar que todos los valores fueron reemplazados correctamente, que los espacios alrededor del signo `=` respetan el formato indicado, y que no quedaron placeholders del tipo `<...>` sin reemplazar.
-### 10. Configurar el perfil de batería en la PiJuice
+### 11. Configurar el perfil de batería en la PiJuice
 
 Este paso le indica a la PiJuice las características de la batería conectada para que el fuel gauge y el gestor de carga funcionen correctamente. Ejecutar el script provisto:
 
@@ -337,7 +362,7 @@ print(pj.config.GetBatteryProfile())
 
 La salida debe mostrar los parámetros configurados en el script.
 
-### 11. Configurar el comportamiento de encendido de la PiJuice
+### 12. Configurar el comportamiento de encendido de la PiJuice
 
 Por defecto, la PiJuice enciende automáticamente la Raspberry Pi al detectar alimentación externa (por ejemplo, cuando el panel solar empieza a entregar potencia al amanecer). Este comportamiento no es deseado en el sistema LSD-Tector, donde la RP solo debe encenderse mediante la alarma programada del RTC.
 
@@ -359,13 +384,13 @@ print(pj.config.GetPowerInputsConfig())
 La salida debe mostrar `'no_battery_turn_on': True`.
 
 
-### 12. Habilitar la sincronización del reloj al arranque
+### 13. Habilitar la sincronización del reloj al arranque
 
 La Raspberry Pi 4 no tiene reloj de tiempo real propio. La PiJuice registra su RTC como `rtc0` en el sistema, y ese RTC es el que conserva la hora cuando el dispositivo está apagado entre ventanas. El servicio `sync-rtc.service` copia la hora del RTC al reloj del sistema en cada arranque, mediante `hwclock --hctosys`.
 
 Esto es imprescindible para la operación en campo: la PiJuice despierta a la Raspberry Pi a la hora programada, y este servicio garantiza que el reloj del sistema tenga la hora real correcta antes de que el crontab evalúe los horarios de las ventanas. Sin esta sincronización, tras un arranque sin conexión a internet el reloj del sistema quedaría con la hora del último apagado y las ventanas no dispararían a la hora correcta.
 
-El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 7. Habilitarlo:
+El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 8. Habilitarlo:
 
 ```bash
 sudo systemctl enable sync-rtc.service
@@ -381,9 +406,9 @@ sudo systemctl status sync-rtc.service
 La salida debe indicar `active (exited)` o similar, sin errores.
 
 
-### 13. Habilitar el servicio hotspot
+### 14. Habilitar el servicio hotspot
 
-El servicio `hotspot.service` ejecuta el script `hotspot.sh` al arrancar el sistema. Este script verifica si `FIRST_START=TRUE` en `config_general.txt` y, en ese caso, activa el modo hotspot para configurar la red WiFi. El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 7. Habilitarlo:
+El servicio `hotspot.service` ejecuta el script `hotspot.sh` al arrancar el sistema. Este script verifica si `FIRST_START=TRUE` en `config_general.txt` y, en ese caso, activa el modo hotspot para configurar la red WiFi. El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 8. Habilitarlo:
 
 ```bash
 sudo systemctl enable hotspot.service
@@ -391,9 +416,9 @@ sudo systemctl enable hotspot.service
 
 > **Nota:** no es necesario ejecutar `start` sobre este servicio en este momento. Se ejecutará automáticamente en el próximo arranque de la Raspberry Pi.
 
-### 14. Configurar el crontab
+### 15. Configurar el crontab
 
-El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube a Drive las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, por la cuota de Drive, ver la nota sobre `client_id`/`client_secret` en el paso 8), la mayoría de las detecciones ya están arriba de todas formas.
+El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube a Drive las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, por la cuota de Drive, ver la nota sobre `client_id`/`client_secret` en el paso 9), la mayoría de las detecciones ya están arriba de todas formas.
 
 Abrir el crontab del usuario `lsd`:
 
@@ -440,9 +465,9 @@ sudo systemctl enable cron
 sudo systemctl start cron
 ```
 
-**Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`. Este script no mantiene ningún clon del repositorio en la Pi: consulta la API de GitHub para saber cuál es el último commit de la rama `main`, lo compara contra el último que aplicó (guardado en `/home/lsd/.ultima_actualizacion`) y, solo si cambió, descarga cada archivo de `scripts/`, `python/` y `systemd/` directamente desde GitHub (`raw.githubusercontent.com`) y los deja en su ubicación activa en `/home/lsd/`. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Como el repo es público, no requiere ninguna credencial en la Pi, ni `git` instalado más allá de lo necesario para el paso 7. Para publicar una actualización, simplemente hacer `git push` a la rama `main` de este repositorio — el dispositivo la va a levantar en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
+**Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`. Este script no mantiene ningún clon del repositorio en la Pi: consulta la API de GitHub para saber cuál es el último commit de la rama `main`, lo compara contra el último que aplicó (guardado en `/home/lsd/.ultima_actualizacion`) y, solo si cambió, descarga cada archivo de `scripts/`, `python/` y `systemd/` directamente desde GitHub (`raw.githubusercontent.com`) y los deja en su ubicación activa en `/home/lsd/`. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Como el repo es público, no requiere ninguna credencial en la Pi, ni `git` instalado más allá de lo necesario para el paso 8. Para publicar una actualización, simplemente hacer `git push` a la rama `main` de este repositorio — el dispositivo la va a levantar en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
 
-### 15. Crear carpetas en Google Drive y subir archivos de configuración
+### 16. Crear carpetas en Google Drive y subir archivos de configuración
 
 Crear las carpetas que utilizará el sistema en Google Drive:
 
@@ -495,5 +520,5 @@ A partir de este momento, el dispositivo opera de forma completamente autónoma 
 
 Una vez el dispositivo está en operación en campo, los archivos `config_horarios.txt` y `config_general.txt` en la carpeta `Laboratorio 6` de Google Drive pueden editarse desde cualquier lugar para modificar la configuración del dispositivo. Los cambios se aplican en el siguiente ciclo, cuando el dispositivo descarga la versión actualizada de Drive al final de la ventana de grabación.
 
-El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 9) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
+El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 10) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
 
