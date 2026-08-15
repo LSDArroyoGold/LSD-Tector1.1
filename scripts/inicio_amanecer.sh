@@ -13,7 +13,8 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
 	sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt
 
-	python3 /home/lsd/log_sistema.py INICIO amanecer
+	FIN_ESPERADO=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r')
+	python3 /home/lsd/log_sistema.py INICIO amanecer $FIN_ESPERADO
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = amanecer/' /home/lsd/config_general.txt
 	sudo nmcli radio wifi on
 	INTENTOS=0

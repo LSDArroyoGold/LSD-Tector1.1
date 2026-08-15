@@ -25,9 +25,9 @@ if [ "$HORA_ACTUAL" = "$HORARIO" ] || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VE
 		HORA_INICIO=$(awk -F'=' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 		HORA_FIN=$(awk -F'=' '/fin_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 		DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
-		python3 /home/lsd/log_sistema.py SIN_CONEXION atardecer $DETECCIONES
-		bash /home/lsd/auto_sync_horarios.sh
 		HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
+		python3 /home/lsd/log_sistema.py SIN_CONEXION atardecer $HORA_WAKE $DETECCIONES
+		bash /home/lsd/auto_sync_horarios.sh
 		python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 		sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 		sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
@@ -57,15 +57,16 @@ pj.power.SetPowerOff(30)
 	HORA_FIN=$(awk -F'=' '/fin_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 	DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 
-	python3 /home/lsd/log_sistema.py FIN atardecer $DETECCIONES
-
 	bash /home/lsd/auto_sync_horarios.sh
 
 	timeout 90 rclone copy gdrive:Laboratorio\ 6/config_horarios.txt /home/lsd/
 
+	HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
+
+	python3 /home/lsd/log_sistema.py FIN atardecer $HORA_WAKE $DETECCIONES
+
 	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
 
-	HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
 	sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt

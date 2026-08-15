@@ -8,7 +8,7 @@ CONFIG_PATH="/home/lsd/config_general.txt"
 CONFIG_HORARIOS="/home/lsd/config_horarios.txt"
 
 log() {
-    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
     echo "[$TIMESTAMP] $1" | tee -a "$LOG_PATH"
 }
 
@@ -50,8 +50,6 @@ if [ "$FIRST_START" != "TRUE" ]; then
     exit 0
 fi
 
-log "Modo primer arranque: activando hotspot"
-
 sudo rfkill unblock wifi
 sleep 2
 sudo nmcli radio wifi on
@@ -83,7 +81,7 @@ fi
 sleep 5
 
 IP_HOTSPOT=$(ip addr show wlan0 | grep -oP 'inet \K[\d.]+')
-log "Hotspot activo en IP: $IP_HOTSPOT"
+log "Hotspot activo (IP: $IP_HOTSPOT)"
 
 # Lanzar portal y capturar exit code
 sudo python3 /home/lsd/portal_configuracion.py
@@ -113,16 +111,14 @@ fi
 sudo systemctl restart systemd-timesyncd
 sleep 5
 python3 /home/lsd/sync_pijuice_rtc.py
-log "RTC sincronizado."
 
-log "Conexión WiFi exitosa."
+SSID_CONECTADA=$(nmcli -t -f active,ssid dev wifi | awk -F: '$1=="yes"{print $2; exit}')
 
 UBICACION=$(curl -s ipinfo.io/json)
 LAT=$(echo $UBICACION | python3 -c "import sys,json; coords=json.load(sys.stdin)['loc'].split(','); print(coords[0])")
 LON=$(echo $UBICACION | python3 -c "import sys,json; coords=json.load(sys.stdin)['loc'].split(','); print(coords[1])")
 sed -i "s/LAT=.*/LAT=$LAT/" /home/lsd/config_general.txt
 sed -i "s/LON=.*/LON=$LON/" /home/lsd/config_general.txt
-log "Ubicación detectada: $LAT, $LON"
 
 # Marcar FIRST_START = FALSE
 sed -i 's/FIRST_START = TRUE/FIRST_START = FALSE/' "$CONFIG_PATH"
@@ -140,18 +136,15 @@ INICIO_ATARDECER_MIN=$(echo "$INICIO_ATARDECER" | sed 's/^0*//')
 
 if [ "$INICIO_AMANECER_MIN" -gt "$HORA_ACTUAL_MIN" ]; then
     HORA_WAKE=$(awk -F'=' '/inicio_amanecer/{print $2}' "$CONFIG_HORARIOS" | tr -d ' \r')
-    log "Próxima ventana: amanecer a las $HORA_WAKE"
 elif [ "$INICIO_ATARDECER_MIN" -gt "$HORA_ACTUAL_MIN" ]; then
     HORA_WAKE=$(awk -F'=' '/inicio_atardecer/{print $2}' "$CONFIG_HORARIOS" | tr -d ' \r')
-    log "Próxima ventana: atardecer a las $HORA_WAKE"
 else
     HORA_WAKE=$(awk -F'=' '/inicio_amanecer/{print $2}' "$CONFIG_HORARIOS" | tr -d ' \r')
-    log "Ambas ventanas pasaron hoy. Próxima ventana: amanecer mañana a las $HORA_WAKE"
 fi
 
 # Programar alarma y apagar
 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
-log "Alarma programada para $HORA_WAKE. Apagando."
+log "Conectado a $SSID_CONECTADA. Próxima ventana: $HORA_WAKE. Apagando."
 
 # Subir log a Drive
 timeout 90 rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/

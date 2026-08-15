@@ -74,4 +74,4 @@ fi
 
 echo "$SHA_ACTUAL" > "$MARCA"
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Repo actualizado a $SHA_ACTUAL" >> /home/lsd/log_sistema.txt
+echo "[$(date '+%Y-%m-%d %H:%M')] Repo actualizado a $SHA_ACTUAL" >> /home/lsd/log_sistema.txt
