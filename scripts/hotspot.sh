@@ -142,9 +142,11 @@ else
     HORA_WAKE=$(awk -F'=' '/inicio_amanecer/{print $2}' "$CONFIG_HORARIOS" | tr -d ' \r')
 fi
 
+PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60} printf "%02d:%02d\n", h, m}')
+
 # Programar alarma y apagar
 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
-log "Conectado a $SSID_CONECTADA. Próxima ventana: $HORA_WAKE. Apagando."
+log "Conectado a $SSID_CONECTADA. Próxima ventana: $PROXIMA_VENTANA. Apagando."
 
 # Subir log a Drive
 timeout 90 rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/
