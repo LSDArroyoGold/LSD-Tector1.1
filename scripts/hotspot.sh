@@ -150,6 +150,7 @@ log "Conectado a $SSID_CONECTADA. Próxima ventana: $PROXIMA_VENTANA. Apagando."
 
 # Subir log a Drive
 timeout 90 rclone copy "$LOG_PATH" gdrive:Laboratorio\ 6/
+bash /home/lsd/generar_log_reciente.sh
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 

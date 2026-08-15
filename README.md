@@ -522,3 +522,5 @@ Una vez el dispositivo está en operación en campo, los archivos `config_horari
 
 El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 10) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
 
+Junto con `log_sistema.txt` también se sube `log_reciente.txt`, con el mismo contenido pero filtrado a solo los últimos 2 días — pensado para revisar la actividad reciente sin tener que scrollear todo el historial completo.
+

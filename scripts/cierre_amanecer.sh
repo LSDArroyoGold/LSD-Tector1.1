@@ -68,6 +68,7 @@ pj.power.SetPowerOff(30)
 	python3 /home/lsd/log_sistema.py FIN amanecer $PROXIMA_VENTANA $DETECCIONES
 
 	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:Laboratorio\ 6/
+	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt

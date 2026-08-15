@@ -20,7 +20,7 @@ fi
 # afuera a propósito: config_general.txt y config_horarios.txt guardan
 # estado en vivo del dispositivo (VENTANA_ACTIVA, CIERRE_FORZADO,
 # coordenadas reales, horarios recalculados), no solo configuración de fábrica.
-ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service"
+ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/generar_log_reciente.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service"
 
 rm -rf "$TMP"
 mkdir -p "$TMP"
