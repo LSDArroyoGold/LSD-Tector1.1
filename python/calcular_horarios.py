@@ -16,6 +16,9 @@ LON = float(leer_config('/home/lsd/config_general.txt', 'LON'))
 DURACION_AMANECER = float(leer_config('/home/lsd/config_horarios.txt', 'duracion_amanecer_sync'))
 DURACION_ATARDECER = float(leer_config('/home/lsd/config_horarios.txt', 'duracion_atardecer_sync'))
 
+OFFSET_AMANECER = float(leer_config('/home/lsd/config_horarios.txt', 'offset_amanecer_sync'))
+OFFSET_ATARDECER = float(leer_config('/home/lsd/config_horarios.txt', 'offset_atardecer_sync'))
+
 # Calcular horarios de hoy y mañana
 ubicacion = LocationInfo(latitude=LAT, longitude=LON)
 hoy = sun(ubicacion.observer, date=date.today())
@@ -23,10 +26,10 @@ manana = sun(ubicacion.observer, date=date.today() + timedelta(days=1))
 
 #Le resto 3 por el huso horario de Argentina
 
-inicio_atardecer = (hoy['sunset'] - timedelta(hours=3)).strftime('%H:%M')
-fin_atardecer = (hoy['sunset'] - timedelta(hours=3) + timedelta(hours=DURACION_ATARDECER)).strftime('%H:%M')
-inicio_amanecer = (manana['sunrise'] - timedelta(hours=3)).strftime('%H:%M')
-fin_amanecer = (manana['sunrise'] - timedelta(hours=3) + timedelta(hours=DURACION_AMANECER)).strftime('%H:%M')
+inicio_atardecer = (hoy['sunset'] - timedelta(hours=3) + timedelta(minutes=OFFSET_ATARDECER)).strftime('%H:%M')
+fin_atardecer = (hoy['sunset'] - timedelta(hours=3) + timedelta(hours=DURACION_ATARDECER) + timedelta(minutes=OFFSET_ATARDECER)).strftime('%H:%M')
+inicio_amanecer = (manana['sunrise'] - timedelta(hours=3) + timedelta(minutes=OFFSET_AMANECER)).strftime('%H:%M')
+fin_amanecer = (manana['sunrise'] - timedelta(hours=3) + timedelta(hours=DURACION_AMANECER) + timedelta(minutes=OFFSET_AMANECER)).strftime('%H:%M')
 
 print(f"inicio_atardecer = {inicio_atardecer}")
 print(f"fin_atardecer = {fin_atardecer}")
