@@ -32,4 +32,5 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 
 	bash /home/lsd/actualizar_repo.sh
+	bash /home/lsd/aplicar_fix_audio_birdnet.sh
 fi
