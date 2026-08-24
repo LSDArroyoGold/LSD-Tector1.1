@@ -33,4 +33,12 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 
 	bash /home/lsd/actualizar_repo.sh
 	bash /home/lsd/aplicar_fix_audio_birdnet.sh
+
+	# Ver el comentario equivalente en inicio_amanecer.sh.
+	if [ ! -f /home/lsd/.birdnet_lsd_migrado ]; then
+		[ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd
+		if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
+			bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Laboratorio 6" "BirdNET_Detecciones"
+		fi
+	fi
 fi

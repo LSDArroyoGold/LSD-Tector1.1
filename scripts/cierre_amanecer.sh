@@ -48,6 +48,15 @@ pj.power.SetPowerOff(30)
 
 	python3 /home/lsd/sync_pijuice_rtc.py
 
+	# Si birdnet-lsd esta instalado (ver migrar_a_birdnet_lsd.sh en
+	# inicio_amanecer.sh), confirmar que sigue activo -- systemd ya lo
+	# reinicia solo si se cae (Restart=always), esto es para enterarse
+	# por Drive de un problema persistente sin esperar a volver al campo.
+	if systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
+		systemctl is-active --quiet birdnet-lsd.service || \
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: birdnet-lsd.service caido"
+	fi
+
 	find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.png" -delete
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*

@@ -48,6 +48,12 @@ pj.power.SetPowerOff(30)
 
 	python3 /home/lsd/sync_pijuice_rtc.py
 
+	# Ver el comentario equivalente en cierre_amanecer.sh.
+	if systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
+		systemctl is-active --quiet birdnet-lsd.service || \
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: birdnet-lsd.service caido"
+	fi
+
 	find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.png" -delete
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*

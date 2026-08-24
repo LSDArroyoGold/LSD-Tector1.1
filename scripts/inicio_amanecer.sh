@@ -33,4 +33,19 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 
 	bash /home/lsd/actualizar_repo.sh
 	bash /home/lsd/aplicar_fix_audio_birdnet.sh
+
+	# Migracion a birdnet-lsd (motor propio, en reemplazo de BirdNET-Pi
+	# stock): una sola vez, disparada por este mismo ciclo de ventana --
+	# el dispositivo esta en el campo sin acceso SSH, asi que tiene que
+	# poder completarse sola. migrar_a_birdnet_lsd.sh nunca deja al
+	# dispositivo sin motor de deteccion (BirdNET-Pi stock sigue activo
+	# hasta confirmar que birdnet-lsd.service arranco bien), y es
+	# idempotente -- si ya se migro, o si algo fallo a mitad de camino,
+	# no rompe nada y el proximo ciclo retoma solo.
+	if [ ! -f /home/lsd/.birdnet_lsd_migrado ]; then
+		[ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd
+		if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
+			bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Laboratorio 6" "BirdNET_Detecciones"
+		fi
+	fi
 fi
