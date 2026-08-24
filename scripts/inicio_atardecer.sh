@@ -36,9 +36,13 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 
 	# Ver el comentario equivalente en inicio_amanecer.sh.
 	if [ ! -f /home/lsd/.birdnet_lsd_migrado ]; then
-		[ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd
-		if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
-			bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Laboratorio 6" "BirdNET_Detecciones"
+		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
+		if [ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd; then
+			if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
+				bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Laboratorio 6" "BirdNET_Detecciones"
+			fi
+		else
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"
 		fi
 	fi
 fi
