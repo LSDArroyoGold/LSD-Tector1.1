@@ -54,5 +54,26 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 		else
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"
 		fi
+	elif [ -d /home/lsd/birdnet-lsd ]; then
+		# Ya migrado: el bloque de arriba no vuelve a correr nunca mas, asi
+		# que sin este paso birdnet-lsd quedaria congelado en la version del
+		# dia de la migracion para siempre.
+		if [ -f /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh ]; then
+			# git pull + reinicio con chequeo de salud (revierte solo si el
+			# commit nuevo rompe el servicio).
+			bash /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh
+		else
+			# Arranque en frio: la primera vez que este mecanismo llega a un
+			# dispositivo ya migrado, el checkout esta congelado en la
+			# version de la migracion y todavia no tiene actualizar_birdnet_lsd.sh
+			# (que vive en el repo birdnet-lsd, recien lo trae este mismo
+			# pull). Un pull simple sin chequeo de salud, aceptable porque
+			# los commits pendientes en este caso puntual son de bajo riesgo
+			# (config y nombre de archivo, no logica de deteccion). Desde la
+			# proxima ventana ya existe el script y se usa la logica
+			# completa con rollback.
+			git -C /home/lsd/birdnet-lsd pull --quiet 2>/dev/null
+			sudo systemctl restart birdnet-lsd.service 2>/dev/null
+		fi
 	fi
 fi

@@ -44,5 +44,13 @@ if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
 		else
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"
 		fi
+	elif [ -d /home/lsd/birdnet-lsd ]; then
+		# Ver el comentario equivalente en inicio_amanecer.sh.
+		if [ -f /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh ]; then
+			bash /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh
+		else
+			git -C /home/lsd/birdnet-lsd pull --quiet 2>/dev/null
+			sudo systemctl restart birdnet-lsd.service 2>/dev/null
+		fi
 	fi
 fi
