@@ -19,10 +19,18 @@ fi
 # Todos los archivos que corren activamente en /home/lsd. config_general.txt
 # y config_horarios.txt quedan afuera a propósito: guardan estado en vivo
 # del dispositivo (VENTANA_ACTIVA, CIERRE_FORZADO, coordenadas reales,
-# horarios recalculados), no solo configuración de fábrica. rclone.conf sí
-# se sincroniza (credenciales de la cuenta de Drive del proyecto, no estado
-# del dispositivo) -- ver caso especial mas abajo.
-ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/generar_log_reciente.sh scripts/aplicar_fix_audio_birdnet.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service config/rclone.conf"
+# horarios recalculados), no solo configuración de fábrica.
+#
+# config/rclone.conf SACADO de esta lista el 31/08/2026 (antes se sincronizaba
+# igual que el resto): tiene credenciales OAuth reales (client_secret,
+# refresh_token), y este repo es publico -- GitHub lo detecto via su programa
+# de partners de secret scanning (Google Cloud es partner) y Google revoco el
+# token solo, silenciosamente, ~1 semana despues de que se commiteo,
+# rompiendo la sincronizacion a Drive sin ningun aviso. Ver
+# config/rclone.conf.ejemplo para la forma del archivo -- el real se pone a
+# mano en cada dispositivo (/home/lsd/.config/rclone/rclone.conf), nunca via
+# git/este script.
+ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/generar_log_reciente.sh scripts/aplicar_fix_audio_birdnet.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service"
 
 rm -rf "$TMP"
 mkdir -p "$TMP"
@@ -51,11 +59,6 @@ for ARCHIVO in $ARCHIVOS; do
 		systemd/*)
 			sudo mv "$TMP/$NOMBRE" "/etc/systemd/system/$NOMBRE"
 			sudo chmod 644 "/etc/systemd/system/$NOMBRE"
-			;;
-		config/rclone.conf)
-			mkdir -p /home/lsd/.config/rclone
-			mv "$TMP/$NOMBRE" /home/lsd/.config/rclone/rclone.conf
-			chmod 600 /home/lsd/.config/rclone/rclone.conf
 			;;
 		*)
 			mv "$TMP/$NOMBRE" "/home/lsd/$NOMBRE"
