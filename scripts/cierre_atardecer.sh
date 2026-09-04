@@ -8,7 +8,6 @@ HORA_ACTUAL=$(date +%H:%M)
 
 CIERRE_FORZADO=$(awk -F'=' '/CIERRE_FORZADO/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 VENTANA_ACTIVA=$(awk -F'=' '/VENTANA_ACTIVA/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
-RETENCION_MB=$(awk -F'=' '/RETENCION_AUDIO_LOCAL_MB/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 
 if [ "$HORA_ACTUAL" = "$HORARIO" ] || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VENTANA_ACTIVA" = "atardecer" ]; }; then
 
@@ -60,14 +59,10 @@ pj.power.SetPowerOff(30)
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
-	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3" && [ -n "$RETENCION_MB" ]; then
-		# Ver la nota completa en cierre_amanecer.sh /
-		# config/config_general.txt (RETENCION_AUDIO_LOCAL_MB).
-		find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.mp3" -printf '%T@ %s %p\n' \
-			| sort -rn \
-			| awk -v cap="$((RETENCION_MB * 1024 * 1024))" '{ acumulado += $2; if (acumulado > cap) print $3 }' \
-			| while IFS= read -r ARCHIVO; do rm -f "$ARCHIVO"; done
-		find /home/lsd/BirdSongs/Extracted/By_Date/ -mindepth 2 -type d -empty -delete
+	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3"; then
+		# Retencion local Y de Drive por tamaño, borrando carpetas de fecha
+		# ENTERAS -- ver limpiar_retencion.sh para el detalle completo.
+		bash /home/lsd/limpiar_retencion.sh
 	fi
 
 	HORA_INICIO=$(awk -F'=' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')

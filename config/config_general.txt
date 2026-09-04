@@ -7,16 +7,22 @@ UMBRAL_BATERIA = 15
 VENTANA_ACTIVA = NONE
 CIERRE_FORZADO = FALSE
 
-# Retencion de audio local (agregado el 4/9/2026, portado de tector2 el
-# mismo dia). rclone copy en cierre_amanecer.sh/cierre_atardecer.sh sube
-# los mp3 a Drive pero nunca borra el original local -- sin esto crecen
-# sin limite mientras el dispositivo este vivo. Cuando el total local
-# supera RETENCION_AUDIO_LOCAL_MB, se borran los archivos MAS VIEJOS (por
-# fecha de modificacion) hasta volver a estar debajo del limite -- un
-# solo pase (ordenar por fecha, acumular tamaño, borrar lo que sobre),
-# SOLO si el "rclone copy" de esa misma corrida salio bien. Valor inicial
-# (10240MB = 10GB) copiado tal cual de la estimacion de tector2 (medida
-# en labo, no en campo) -- PENDIENTE recalcular con datos reales de
-# tector1 en campo la proxima vez que este en ventana y se pueda medir
-# /home/lsd/BirdSongs/Extracted/By_Date real.
-RETENCION_AUDIO_LOCAL_MB = 10240
+# Retencion de audio LOCAL y de DRIVE (agregado el 4/9/2026, ver
+# limpiar_retencion.sh -- llamado desde cierre_amanecer.sh/
+# cierre_atardecer.sh, SOLO si el "rclone copy" de esa misma corrida
+# salio bien). Sin esto, tanto lo local como Drive crecen sin limite
+# mientras el dispositivo este vivo -- Diego tiene limite de cuenta en
+# Drive, asi que no alcanza con acotar solo lo local.
+#
+# Cuando el total supera el limite, se borran carpetas de FECHA ENTERAS
+# (By_Date/<fecha>/, con todas las especies de ese dia adentro) --
+# nunca archivos sueltos de un dia a medias -- empezando por la mas
+# vieja, hasta volver a estar debajo del limite.
+#
+# Historial del numero: primero 10240MB (10GB, estimacion de tector2 en
+# labo) -> 2048MB (2GB, recalculado con datos reales de campo de
+# tector1: 1.4GB en 144 dias reales, ~9.7MB/dia) -> 3072MB (3GB) el
+# mismo dia, a pedido explicito de Diego para que local y Drive queden
+# parejos con el mismo numero.
+RETENCION_AUDIO_LOCAL_MB = 3072
+RETENCION_DRIVE_MB = 3072
