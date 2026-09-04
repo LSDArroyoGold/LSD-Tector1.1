@@ -30,7 +30,7 @@ fi
 # config/rclone.conf.ejemplo para la forma del archivo -- el real se pone a
 # mano en cada dispositivo (/home/lsd/.config/rclone/rclone.conf), nunca via
 # git/este script.
-ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/generar_log_reciente.sh scripts/aplicar_fix_audio_birdnet.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service"
+ARCHIVOS="scripts/inicio_amanecer.sh scripts/inicio_atardecer.sh scripts/cierre_amanecer.sh scripts/cierre_atardecer.sh scripts/hotspot.sh scripts/auto_sync_horarios.sh scripts/chequeo_bateria.sh scripts/sincronizar_detecciones.sh scripts/generar_log_reciente.sh scripts/aplicar_fix_audio_birdnet.sh scripts/actualizar_repo.sh python/calcular_horarios.py python/check_button.py python/configurar_bateria_pijuice.py python/log_sistema.py python/portal_configuracion.py python/set_wake_pijuice.py python/sync_pijuice_rtc.py systemd/hotspot.service systemd/sync-rtc.service config/logrotate-tector1"
 
 rm -rf "$TMP"
 mkdir -p "$TMP"
@@ -59,6 +59,14 @@ for ARCHIVO in $ARCHIVOS; do
 		systemd/*)
 			sudo mv "$TMP/$NOMBRE" "/etc/systemd/system/$NOMBRE"
 			sudo chmod 644 "/etc/systemd/system/$NOMBRE"
+			;;
+		config/logrotate-tector1)
+			# No es una unit de systemd -- va a /etc/logrotate.d/, corre
+			# solo via el cron.daily estandar de logrotate.
+			mv "$TMP/$NOMBRE" "/home/lsd/$NOMBRE"
+			sudo cp "/home/lsd/$NOMBRE" /etc/logrotate.d/tector
+			sudo chown root:root /etc/logrotate.d/tector
+			sudo chmod 644 /etc/logrotate.d/tector
 			;;
 		*)
 			mv "$TMP/$NOMBRE" "/home/lsd/$NOMBRE"

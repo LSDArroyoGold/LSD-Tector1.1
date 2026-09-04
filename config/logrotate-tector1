@@ -1,0 +1,44 @@
+# logrotate-tector1 - instalado por actualizar_repo.sh en
+# /etc/logrotate.d/tector. Portado de LSD-Tector2.0 el 4/9/2026 (mismo
+# criterio: limite por TAMAÑO, no por dias -- "rotate 0", sin
+# generaciones viejas, trunca directo al tope). Solo dos archivos, no
+# tres -- tector1 usa PiJuice para bateria, no existe un log_bateria.txt
+# equivalente al de tector2 (INA219 + aislador MPPT).
+#
+# copytruncate: estos archivos los escriben procesos de larga duracion
+# (motor.py via systemd, cron) sin ningun mecanismo de "reabrir el
+# archivo si cambia de nombre".
+#
+# "su lsd lsd": logrotate se niega a tocar un log si su carpeta no es de
+# root -- confirmado a mano en tector2 el 4/9/2026 con "logrotate -d"
+# antes de darlo por andando ahi, aplica igual aca.
+#
+# Tamaños: log_sistema.txt usa la estimacion medida en tector2 (~308
+# bytes/dia reales) como proxy -- misma logica de eventos (INICIO/FIN de
+# ventana + alertas ocasionales), asi que debería ser un numero
+# razonable, pero NO es una medicion de tector1 real. motor.log es el
+# MISMO codigo compartido (birdnet-lsd) corriendo en los dos
+# dispositivos, asi que el limite de tector2 (calibrado con el peor caso
+# de labo ruidoso) es si acaso MAS generoso todavia para tector1 en
+# campo real (deberia ser menos ruidoso que un labo). PENDIENTE
+# recalcular log_sistema.txt con datos reales de tector1 cuando este en
+# ventana.
+/home/lsd/log_sistema.txt
+{
+	size 512k
+	rotate 0
+	missingok
+	notifempty
+	copytruncate
+	su lsd lsd
+}
+
+/home/lsd/birdnet-lsd/motor.log
+{
+	size 1G
+	rotate 0
+	missingok
+	notifempty
+	copytruncate
+	su lsd lsd
+}

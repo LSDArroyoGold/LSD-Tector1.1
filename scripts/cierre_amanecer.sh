@@ -8,6 +8,7 @@ HORA_ACTUAL=$(date +%H:%M)
 
 CIERRE_FORZADO=$(awk -F'=' '/CIERRE_FORZADO/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 VENTANA_ACTIVA=$(awk -F'=' '/VENTANA_ACTIVA/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+RETENCION_MB=$(awk -F'=' '/RETENCION_AUDIO_LOCAL_MB/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 
 if [ "$HORA_ACTUAL" = "$HORARIO" ] || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VENTANA_ACTIVA" = "amanecer" ]; }; then
 
@@ -62,7 +63,17 @@ pj.power.SetPowerOff(30)
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
-	timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3"
+	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:Laboratorio\ 6/BirdNET_Detecciones --include "*.mp3" && [ -n "$RETENCION_MB" ]; then
+		# Ver la nota completa en config/config_general.txt
+		# (RETENCION_AUDIO_LOCAL_MB). Un solo pase: ordena por fecha de
+		# modificacion (mas nuevo primero), acumula tamaño, y borra todo lo
+		# que quede una vez superado el limite.
+		find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.mp3" -printf '%T@ %s %p\n' \
+			| sort -rn \
+			| awk -v cap="$((RETENCION_MB * 1024 * 1024))" '{ acumulado += $2; if (acumulado > cap) print $3 }' \
+			| while IFS= read -r ARCHIVO; do rm -f "$ARCHIVO"; done
+		find /home/lsd/BirdSongs/Extracted/By_Date/ -mindepth 2 -type d -empty -delete
+	fi
 
 	HORA_INICIO=$(awk -F'=' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 	HORA_FIN=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')

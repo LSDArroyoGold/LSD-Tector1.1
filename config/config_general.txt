@@ -6,3 +6,17 @@ LON=-58.3772
 UMBRAL_BATERIA = 15
 VENTANA_ACTIVA = NONE
 CIERRE_FORZADO = FALSE
+
+# Retencion de audio local (agregado el 4/9/2026, portado de tector2 el
+# mismo dia). rclone copy en cierre_amanecer.sh/cierre_atardecer.sh sube
+# los mp3 a Drive pero nunca borra el original local -- sin esto crecen
+# sin limite mientras el dispositivo este vivo. Cuando el total local
+# supera RETENCION_AUDIO_LOCAL_MB, se borran los archivos MAS VIEJOS (por
+# fecha de modificacion) hasta volver a estar debajo del limite -- un
+# solo pase (ordenar por fecha, acumular tamaño, borrar lo que sobre),
+# SOLO si el "rclone copy" de esa misma corrida salio bien. Valor inicial
+# (10240MB = 10GB) copiado tal cual de la estimacion de tector2 (medida
+# en labo, no en campo) -- PENDIENTE recalcular con datos reales de
+# tector1 en campo la proxima vez que este en ventana y se pueda medir
+# /home/lsd/BirdSongs/Extracted/By_Date real.
+RETENCION_AUDIO_LOCAL_MB = 10240
