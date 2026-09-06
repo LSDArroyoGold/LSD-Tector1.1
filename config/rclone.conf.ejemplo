@@ -1,7 +1,41 @@
+# Copiar a rclone.conf (sin el .ejemplo) en /home/lsd/.config/rclone/ --
+# NUNCA se sincroniza por git (ver .gitignore y la nota historica en
+# actualizar_repo.sh sobre por que).
+#
+# Migrado el 6/9/2026 de OAuth de usuario a cuenta de servicio: el
+# refresh token de OAuth caducaba cada 7 dias exactos, sin importar
+# cuantas veces se regenerara -- resulto ser la politica de Google para
+# apps con scopes sensibles/restringidos sin verificar (rclone pide el
+# scope "drive" completo, que es "restringido"), aplica aunque la app
+# este publicada en produccion. Verificar el scope pesado con Google
+# (CASA) no valia la pena para un proyecto personal. Una cuenta de
+# servicio no tiene ese limite y no requiere ningun login interactivo
+# (nunca hay que renovar nada a mano).
+#
+# Setup (una sola vez, ya hecho el 6/9/2026 -- documentado por si hay
+# que rehacerlo, ver la nota gemela en LSD-Tector2.0/config/rclone.conf.ejemplo):
+#   1. Google Cloud Console (proyecto lsd-tector) -> IAM & Admin ->
+#      Service Accounts -> Create Service Account (misma cuenta que
+#      tector2, mismo proyecto).
+#   2. Esa cuenta -> Keys -> Add Key -> Create new key -> JSON. Subir
+#      ese archivo a /home/lsd/.config/rclone/service-account.json.
+#   3. En Drive, compartir la carpeta Laboratorio 6 (Editor) con el
+#      email de la cuenta de servicio (forma
+#      "algo@lsd-tector.iam.gserviceaccount.com").
+#   4. root_folder_id abajo = el ID de esa carpeta (de su URL:
+#      https://drive.google.com/drive/folders/<ESTE_ID>).
+#
+# IMPORTANTE: con root_folder_id, el remoto "gdrive:" ya arranca DENTRO
+# de la carpeta Laboratorio 6 -- por eso todos los scripts que antes
+# decian "gdrive:Laboratorio 6/..." ahora dicen "gdrive:..." a secas
+# (cambiado el 6/9/2026 en cierre_amanecer.sh, cierre_atardecer.sh,
+# inicio_amanecer.sh, inicio_atardecer.sh, hotspot.sh,
+# sincronizar_detecciones.sh, generar_log_reciente.sh,
+# limpiar_retencion.sh, calcular_horarios.py). No volver a agregar
+# "Laboratorio 6" a ninguna ruta.
 [gdrive]
 type = drive
 scope = drive
-token = {"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}
+service_account_file = /home/lsd/.config/rclone/service-account.json
+root_folder_id = 12a6XP5-tBbNlmrzaWDBIsBc6wym6MkvK
 team_drive =
-client_id = ...
-client_secret = ...

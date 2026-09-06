@@ -51,7 +51,7 @@ with open('/home/lsd/config_horarios.txt','w') as f:
 
 import subprocess
 try:
-    subprocess.run(['rclone', 'copy', '/home/lsd/config_horarios.txt', 'gdrive:Laboratorio 6/'], timeout=90)
+    subprocess.run(['rclone', 'copy', '/home/lsd/config_horarios.txt', 'gdrive:'], timeout=90)
     print("config_horarios.txt actualizado y subido a Drive")
 except subprocess.TimeoutExpired:
     print("config_horarios.txt actualizado localmente, pero la subida a Drive tardó más de 90s y se abortó")

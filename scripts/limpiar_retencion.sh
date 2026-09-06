@@ -39,7 +39,7 @@ fi
 # ---
 if [ -n "$RETENCION_DRIVE_MB" ]; then
 	CAP_BYTES=$((RETENCION_DRIVE_MB * 1024 * 1024))
-	timeout 60 rclone lsjson -R "gdrive:Laboratorio 6/BirdNET_Detecciones/" --files-only 2>/dev/null \
+	timeout 60 rclone lsjson -R "gdrive:BirdNET_Detecciones/" --files-only 2>/dev/null \
 		| python3 -c "
 import sys, json
 
@@ -64,6 +64,6 @@ for fecha in sorted(por_fecha, reverse=True):
         print(fecha)
 " \
 		| while IFS= read -r FECHA; do
-			timeout 60 rclone purge "gdrive:Laboratorio 6/BirdNET_Detecciones/$FECHA" 2>/dev/null
+			timeout 60 rclone purge "gdrive:BirdNET_Detecciones/$FECHA" 2>/dev/null
 		done
 fi
