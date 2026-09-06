@@ -5,11 +5,23 @@ export HOME=/home/lsd
 
 HORARIO=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r')
 HORA_ACTUAL=$(date +%H:%M)
+FECHA_HOY=$(date +%Y-%m-%d)
+
+# Margen de tolerancia de 10 min despues de la hora de cierre prevista --
+# ver la nota completa en inicio_amanecer.sh sobre por que una
+# comparacion de minuto exacto es fragil. El cierre FORZADO por bateria
+# (mas abajo) sigue sin margen a proposito -- eso se atiende apenas se
+# detecta, no con tolerancia.
+HORARIO_MARGEN=$(echo "$HORARIO" | awk -F: '{m=$2+10; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
+MARCA="/home/lsd/.cierre_amanecer_hecho_$FECHA_HOY"
 
 CIERRE_FORZADO=$(awk -F'=' '/CIERRE_FORZADO/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 VENTANA_ACTIVA=$(awk -F'=' '/VENTANA_ACTIVA/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 
-if [ "$HORA_ACTUAL" = "$HORARIO" ] || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VENTANA_ACTIVA" = "amanecer" ]; }; then
+if { [[ ! -f "$MARCA" ]] && [[ ! "$HORA_ACTUAL" < "$HORARIO" ]] && [[ "$HORA_ACTUAL" < "$HORARIO_MARGEN" ]]; } || { [ "$CIERRE_FORZADO" = "TRUE" ] && [ "$VENTANA_ACTIVA" = "amanecer" ]; }; then
+
+	touch "$MARCA"
+	find /home/lsd -maxdepth 1 -name '.cierre_amanecer_hecho_*' -mtime +3 -delete 2>/dev/null
 
 	sudo nmcli radio wifi on
 

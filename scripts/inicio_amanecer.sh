@@ -5,15 +5,29 @@ export HOME=/home/lsd
 
 HORARIO=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt |  tr -d '\r')
 HORA_ACTUAL=$(date +%H:%M)
+FECHA_HOY=$(date +%Y-%m-%d)
 
 HORARIO_DELAY=$(echo "$HORARIO" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60} printf "%02d:%02d\n", h, m}')
+FIN_ESPERADO=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r')
+MARCA="/home/lsd/.inicio_amanecer_hecho_$FECHA_HOY"
 
-if [ "$HORA_ACTUAL" = "$HORARIO_DELAY" ]; then
+# Antes: comparacion de MINUTO EXACTO (HORA_ACTUAL = HORARIO_DELAY) -- cron
+# corre cada 60s, asi que si el equipo no respondia justo en ese minuto
+# puntual (bootenado a medias, ocupado, lo que sea) se perdia el dia
+# entero sin reintento. Encontrado el 6/9/2026: el amanecer no corrio ese
+# dia pese a que el reloj y el cron estaban sanos -- no hay prueba de que
+# haya sido justo esto, pero es una fragilidad real de por si. Ahora:
+# ventana de tolerancia desde HORARIO_DELAY hasta FIN_ESPERADO, con una
+# marca de "ya arranco hoy" para no repetir el INICIO en cada minuto
+# subsiguiente de esa misma ventana.
+if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_ACTUAL" < "$FIN_ESPERADO" ]]; then
+
+	touch "$MARCA"
+	find /home/lsd -maxdepth 1 -name '.inicio_amanecer_hecho_*' -mtime +3 -delete 2>/dev/null
 
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
 	sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt
 
-	FIN_ESPERADO=$(awk -F'=' '/fin_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r')
 	python3 /home/lsd/log_sistema.py INICIO amanecer $FIN_ESPERADO
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = amanecer/' /home/lsd/config_general.txt
 	sudo nmcli radio wifi on
