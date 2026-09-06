@@ -2,40 +2,49 @@
 # NUNCA se sincroniza por git (ver .gitignore y la nota historica en
 # actualizar_repo.sh sobre por que).
 #
-# Migrado el 6/9/2026 de OAuth de usuario a cuenta de servicio: el
-# refresh token de OAuth caducaba cada 7 dias exactos, sin importar
-# cuantas veces se regenerara -- resulto ser la politica de Google para
-# apps con scopes sensibles/restringidos sin verificar (rclone pide el
-# scope "drive" completo, que es "restringido"), aplica aunque la app
-# este publicada en produccion. Verificar el scope pesado con Google
-# (CASA) no valia la pena para un proyecto personal. Una cuenta de
-# servicio no tiene ese limite y no requiere ningun login interactivo
-# (nunca hay que renovar nada a mano).
+# Migrado el 6/9/2026 (dos intentos, el segundo es el que quedo):
 #
-# Setup (una sola vez, ya hecho el 6/9/2026 -- documentado por si hay
-# que rehacerlo, ver la nota gemela en LSD-Tector2.0/config/rclone.conf.ejemplo):
-#   1. Google Cloud Console (proyecto lsd-tector) -> IAM & Admin ->
-#      Service Accounts -> Create Service Account (misma cuenta que
-#      tector2, mismo proyecto).
-#   2. Esa cuenta -> Keys -> Add Key -> Create new key -> JSON. Subir
-#      ese archivo a /home/lsd/.config/rclone/service-account.json.
-#   3. En Drive, compartir la carpeta Laboratorio 6 (Editor) con el
-#      email de la cuenta de servicio (forma
-#      "algo@lsd-tector.iam.gserviceaccount.com").
-#   4. root_folder_id abajo = el ID de esa carpeta (de su URL:
-#      https://drive.google.com/drive/folders/<ESTE_ID>).
+# 1) Diagnostico real del problema original: el refresh token de OAuth
+#    caducaba cada 7 dias exactos. Causa: rclone pedia el scope "drive"
+#    completo, que Google clasifica "restringido" -- ese nivel exige
+#    verificacion (revision de seguridad CASA) para dejar de tener el
+#    limite de 7 dias, aplica AUNQUE la app este publicada en
+#    produccion (se penso primero que era Testing vs Produccion, no
+#    era eso).
 #
-# IMPORTANTE: con root_folder_id, el remoto "gdrive:" ya arranca DENTRO
-# de la carpeta Laboratorio 6 -- por eso todos los scripts que antes
-# decian "gdrive:Laboratorio 6/..." ahora dicen "gdrive:..." a secas
-# (cambiado el 6/9/2026 en cierre_amanecer.sh, cierre_atardecer.sh,
-# inicio_amanecer.sh, inicio_atardecer.sh, hotspot.sh,
-# sincronizar_detecciones.sh, generar_log_reciente.sh,
-# limpiar_retencion.sh, calcular_horarios.py). No volver a agregar
-# "Laboratorio 6" a ninguna ruta.
+# 2) Primer intento de fix: cuenta de servicio. NO FUNCIONA para subir
+#    archivos en una cuenta de Google personal (no Workspace) -- aunque
+#    la carpeta este compartida como Editor, Google la rechaza con
+#    "Service Accounts do not have storage quota" al intentar crear
+#    cualquier archivo. Solo sirve para LEER. Descartado.
+#
+# 3) Fix real: OAuth de usuario con scope "drive.file" en vez de
+#    "drive" completo. Es un scope NO sensible (confirmado en la
+#    consola de Google) -- no tiene el limite de 7 dias. Sorpresa
+#    verificada empiricamente: aunque "drive.file" en teoria solo ve
+#    archivos creados por la propia app, en la practica SI sigue
+#    viendo (leer Y escribir) todo lo que este client_id ya habia
+#    creado antes bajo el scope completo -- probado en vivo el 6/9,
+#    "BirdNET_Detecciones" aparece completo con el historico real,
+#    desde abril 2026. Aparece en la RAIZ del remoto directamente
+#    (no anidado bajo "Laboratorio 6"), por eso las rutas en los
+#    scripts son "gdrive:BirdNET_Detecciones", no
+#    "gdrive:Laboratorio 6/BirdNET_Detecciones" (arreglado el mismo
+#    dia, commit 2245d16).
+#
+# Para generar un token nuevo con este scope (si hay que rehacerlo):
+#   rclone authorize drive --drive-scope drive.file <client_id> <client_secret>
+# OJO: "rclone authorize" SIN el flag --drive-scope pide el scope
+# completo por default, sin avisar -- confirmado el 6/9 con un intento
+# fallido (tokeninfo de Google mostro "scope: .../auth/drive", no
+# drive.file, pese a que la config decia scope=drive.file). Verificar
+# siempre con:
+#   curl -s "https://oauth2.googleapis.com/tokeninfo?access_token=<access_token>"
+# antes de dar un token nuevo por bueno.
 [gdrive]
 type = drive
-scope = drive
-service_account_file = /home/lsd/.config/rclone/service-account.json
-root_folder_id = 12a6XP5-tBbNlmrzaWDBIsBc6wym6MkvK
+scope = drive.file
+client_id = ...
+client_secret = ...
+token = {"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}
 team_drive =
