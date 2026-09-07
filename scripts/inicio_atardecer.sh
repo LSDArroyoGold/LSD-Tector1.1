@@ -42,22 +42,22 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 	bash /home/lsd/aplicar_fix_audio_birdnet.sh
 
 	# Ver el comentario equivalente en inicio_amanecer.sh.
-	if [ ! -f /home/lsd/.birdnet_lsd_migrado ]; then
+	if [ -f /home/lsd/.tectornet_pi_migrado ]; then
+		if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
+			bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
+		fi
+	elif [ -f /home/lsd/.birdnet_lsd_migrado ]; then
+		if [ -f /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh ]; then
+			bash /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh
+		fi
+	else
 		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
-		if [ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd; then
-			if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
-				bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Tector 1" "Detecciones"
+		if [ -d /home/lsd/TectorNET-Pi ] || git clone https://github.com/LSDArroyoGold/TectorNET-Pi.git /home/lsd/TectorNET-Pi; then
+			if [ -f /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh ]; then
+				bash /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh "Tector 1" "Detecciones"
 			fi
 		else
-			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"
-		fi
-	elif [ -d /home/lsd/birdnet-lsd ]; then
-		# Ver el comentario equivalente en inicio_amanecer.sh.
-		if [ -f /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh ]; then
-			bash /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh
-		else
-			git -C /home/lsd/birdnet-lsd pull --quiet 2>/dev/null
-			sudo systemctl restart birdnet-lsd.service 2>/dev/null
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar TectorNET-Pi (git no disponible?)"
 		fi
 	fi
 fi

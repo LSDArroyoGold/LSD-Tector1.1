@@ -48,46 +48,44 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 	bash /home/lsd/actualizar_repo.sh
 	bash /home/lsd/aplicar_fix_audio_birdnet.sh
 
-	# Migracion a birdnet-lsd (motor propio, en reemplazo de BirdNET-Pi
-	# stock): una sola vez, disparada por este mismo ciclo de ventana --
-	# el dispositivo esta en el campo sin acceso SSH, asi que tiene que
-	# poder completarse sola. migrar_a_birdnet_lsd.sh nunca deja al
-	# dispositivo sin motor de deteccion (BirdNET-Pi stock sigue activo
-	# hasta confirmar que birdnet-lsd.service arranco bien), y es
-	# idempotente -- si ya se migro, o si algo fallo a mitad de camino,
+	# Migracion/renombrado del motor propio (TectorNET-Pi, antes
+	# birdnet-lsd, renombrado el 7/9/2026): disparado por este mismo ciclo
+	# de ventana -- el dispositivo esta en el campo sin acceso SSH, asi que
+	# tiene que poder completarse solo. Tres estados posibles segun la
+	# marca presente:
+	#   - sin ninguna marca: nunca se instalo el motor propio, todavia en
+	#     BirdNET-Pi stock -> migrar_a_tectornet_pi.sh (clone + instalacion
+	#     completa, nunca deja al dispositivo sin motor de deteccion:
+	#     BirdNET-Pi stock sigue activo hasta confirmar que
+	#     TectorNET-Pi.service arranco bien).
+	#   - marca vieja (.birdnet_lsd_migrado) sin la nueva: motor propio ya
+	#     instalado bajo el nombre viejo -> renombrar_a_tectornet_pi.sh (mv
+	#     en el lugar, sin reinstalar nada, mismo principio de no dejar el
+	#     dispositivo sin motor sano a mitad de camino).
+	#   - marca nueva (.tectornet_pi_migrado): ya en el nombre nuevo ->
+	#     actualizar_tectornet_pi.sh (git pull + chequeo de salud, revierte
+	#     solo si el commit nuevo rompe el servicio).
+	# Los tres scripts son idempotentes -- si algo falla a mitad de camino,
 	# no rompe nada y el proximo ciclo retoma solo.
-	if [ ! -f /home/lsd/.birdnet_lsd_migrado ]; then
+	if [ -f /home/lsd/.tectornet_pi_migrado ]; then
+		if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
+			bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
+		fi
+	elif [ -f /home/lsd/.birdnet_lsd_migrado ]; then
+		if [ -f /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh ]; then
+			bash /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh
+		fi
+	else
 		# LSD-Tector1.1 evita depender de git a proposito (todo via curl) --
-		# birdnet-lsd si lo necesita (clone/pull), asi que se instala aca si
+		# TectorNET-Pi si lo necesita (clone/pull), asi que se instala aca si
 		# hace falta antes de intentar el clone.
 		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
-		if [ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd; then
-			if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
-				bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Tector 1" "Detecciones"
+		if [ -d /home/lsd/TectorNET-Pi ] || git clone https://github.com/LSDArroyoGold/TectorNET-Pi.git /home/lsd/TectorNET-Pi; then
+			if [ -f /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh ]; then
+				bash /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh "Tector 1" "Detecciones"
 			fi
 		else
-			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"
-		fi
-	elif [ -d /home/lsd/birdnet-lsd ]; then
-		# Ya migrado: el bloque de arriba no vuelve a correr nunca mas, asi
-		# que sin este paso birdnet-lsd quedaria congelado en la version del
-		# dia de la migracion para siempre.
-		if [ -f /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh ]; then
-			# git pull + reinicio con chequeo de salud (revierte solo si el
-			# commit nuevo rompe el servicio).
-			bash /home/lsd/birdnet-lsd/scripts/actualizar_birdnet_lsd.sh
-		else
-			# Arranque en frio: la primera vez que este mecanismo llega a un
-			# dispositivo ya migrado, el checkout esta congelado en la
-			# version de la migracion y todavia no tiene actualizar_birdnet_lsd.sh
-			# (que vive en el repo birdnet-lsd, recien lo trae este mismo
-			# pull). Un pull simple sin chequeo de salud, aceptable porque
-			# los commits pendientes en este caso puntual son de bajo riesgo
-			# (config y nombre de archivo, no logica de deteccion). Desde la
-			# proxima ventana ya existe el script y se usa la logica
-			# completa con rollback.
-			git -C /home/lsd/birdnet-lsd pull --quiet 2>/dev/null
-			sudo systemctl restart birdnet-lsd.service 2>/dev/null
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar TectorNET-Pi (git no disponible?)"
 		fi
 	fi
 fi

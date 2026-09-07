@@ -61,11 +61,18 @@ pj.power.SetPowerOff(30)
 
 	timeout 20 python3 /home/lsd/sync_pijuice_rtc.py
 
-	# Si birdnet-lsd esta instalado (ver migrar_a_birdnet_lsd.sh en
-	# inicio_amanecer.sh), confirmar que sigue activo -- systemd ya lo
-	# reinicia solo si se cae (Restart=always), esto es para enterarse
-	# por Drive de un problema persistente sin esperar a volver al campo.
-	if systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
+	# Si TectorNET-Pi esta instalado (ver migrar_a_tectornet_pi.sh /
+	# renombrar_a_tectornet_pi.sh en inicio_amanecer.sh), confirmar que
+	# sigue activo -- systemd ya lo reinicia solo si se cae
+	# (Restart=always), esto es para enterarse por Drive de un problema
+	# persistente sin esperar a volver al campo. Chequea los dos nombres
+	# de unidad posibles (nombre nuevo primero) porque un dispositivo
+	# recien migrado a birdnet-lsd (nombre viejo) que todavia no paso por
+	# el renombrado tambien tiene que quedar cubierto.
+	if systemctl list-unit-files TectorNET-Pi.service &>/dev/null; then
+		systemctl is-active --quiet TectorNET-Pi.service || \
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: TectorNET-Pi.service caido"
+	elif systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
 		systemctl is-active --quiet birdnet-lsd.service || \
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: birdnet-lsd.service caido"
 	fi

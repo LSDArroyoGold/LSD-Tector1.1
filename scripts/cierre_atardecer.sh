@@ -59,7 +59,10 @@ pj.power.SetPowerOff(30)
 	timeout 20 python3 /home/lsd/sync_pijuice_rtc.py
 
 	# Ver el comentario equivalente en cierre_amanecer.sh.
-	if systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
+	if systemctl list-unit-files TectorNET-Pi.service &>/dev/null; then
+		systemctl is-active --quiet TectorNET-Pi.service || \
+			python3 /home/lsd/log_sistema.py MSG "ALERTA: TectorNET-Pi.service caido"
+	elif systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
 		systemctl is-active --quiet birdnet-lsd.service || \
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: birdnet-lsd.service caido"
 	fi
