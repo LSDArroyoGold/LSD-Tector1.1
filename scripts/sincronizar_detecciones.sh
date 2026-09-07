@@ -9,4 +9,4 @@ if [ "$VENTANA_ACTIVA" = "NONE" ]; then
 	exit 0
 fi
 
-timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:BirdNET_Detecciones --include "*.mp3"
+timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ "gdrive:Tector 1/Detecciones" --include "*.mp3"

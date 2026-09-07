@@ -40,7 +40,7 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 		echo "Sin conexión, abortando"
 		exit 1
 	fi
-	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:
+	timeout 90 rclone copy /home/lsd/log_sistema.txt "gdrive:Tector 1/"
 	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
@@ -63,7 +63,7 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
 		if [ -d /home/lsd/birdnet-lsd ] || git clone https://github.com/LSDArroyoGold/birdnet-lsd.git /home/lsd/birdnet-lsd; then
 			if [ -f /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh ]; then
-				bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Laboratorio 6" "BirdNET_Detecciones"
+				bash /home/lsd/birdnet-lsd/scripts/migrar_a_birdnet_lsd.sh "Tector 1" "Detecciones"
 			fi
 		else
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar birdnet-lsd (git no disponible?)"

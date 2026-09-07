@@ -8,4 +8,4 @@ AYER=$(date -d "yesterday" +%Y-%m-%d)
 
 grep -aE "^\[($HOY|$AYER)" /home/lsd/log_sistema.txt > /home/lsd/log_reciente.txt
 
-timeout 90 rclone copy /home/lsd/log_reciente.txt gdrive:
+timeout 90 rclone copy /home/lsd/log_reciente.txt "gdrive:Tector 1/"

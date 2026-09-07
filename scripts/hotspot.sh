@@ -124,7 +124,7 @@ sed -i "s/LON=.*/LON=$LON/" /home/lsd/config_general.txt
 sed -i 's/FIRST_START = TRUE/FIRST_START = FALSE/' "$CONFIG_PATH"
 
 bash /home/lsd/auto_sync_horarios.sh
-timeout 90 rclone copy /home/lsd/config_horarios.txt gdrive:
+timeout 90 rclone copy /home/lsd/config_horarios.txt "gdrive:Tector 1/"
 
 # Calcular próxima ventana (la más cercana a futuro)
 HORA_ACTUAL_MIN=$(date +%H%M | sed 's/^0*//')
@@ -149,7 +149,7 @@ timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 log "Conectado a $SSID_CONECTADA. Próxima ventana: $PROXIMA_VENTANA. Apagando."
 
 # Subir log a Drive
-timeout 90 rclone copy "$LOG_PATH" gdrive:
+timeout 90 rclone copy "$LOG_PATH" "gdrive:Tector 1/"
 bash /home/lsd/generar_log_reciente.sh
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf

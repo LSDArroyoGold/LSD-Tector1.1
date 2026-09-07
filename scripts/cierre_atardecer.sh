@@ -68,7 +68,7 @@ pj.power.SetPowerOff(30)
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
-	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ gdrive:BirdNET_Detecciones --include "*.mp3"; then
+	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ "gdrive:Tector 1/Detecciones" --include "*.mp3"; then
 		# Retencion local Y de Drive por tamaño, borrando carpetas de fecha
 		# ENTERAS -- ver limpiar_retencion.sh para el detalle completo.
 		bash /home/lsd/limpiar_retencion.sh
@@ -82,14 +82,14 @@ pj.power.SetPowerOff(30)
 
 	bash /home/lsd/auto_sync_horarios.sh
 
-	timeout 90 rclone copy gdrive:config_horarios.txt /home/lsd/
+	timeout 90 rclone copy "gdrive:Tector 1/config_horarios.txt" /home/lsd/
 
 	HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 	PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 
 	python3 /home/lsd/log_sistema.py FIN atardecer $PROXIMA_VENTANA "$DETECCIONES ($DETECCIONES_OK OK)"
 
-	timeout 90 rclone copy /home/lsd/log_sistema.txt gdrive:
+	timeout 90 rclone copy /home/lsd/log_sistema.txt "gdrive:Tector 1/"
 	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf

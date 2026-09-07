@@ -28,9 +28,41 @@
 #    "BirdNET_Detecciones" aparece completo con el historico real,
 #    desde abril 2026. Aparece en la RAIZ del remoto directamente
 #    (no anidado bajo "Laboratorio 6"), por eso las rutas en los
-#    scripts son "gdrive:BirdNET_Detecciones", no
-#    "gdrive:Laboratorio 6/BirdNET_Detecciones" (arreglado el mismo
-#    dia, commit 2245d16).
+#    scripts pasaron a ser "gdrive:BirdNET_Detecciones" (arreglado
+#    ese dia, commit 2245d16) -- ESTO YA NO ES ASI, ver 7/9 abajo.
+#
+# 7/9/2026: la convencion de rutas cambio nuevamente. La cuenta a la
+# que sube tector1 (lsdarroyogold@gmail.com) nunca tuvo NADA
+# compartido con el resto del laboratorio -- ni "BirdNET_Detecciones"
+# en la raiz, ni la vieja "Laboratorio 6" de la migracion a cuenta de
+# servicio (esa carpeta era de OTRA cuenta y da 404 con este token).
+# A pedido de Diego, todo lo que sube tector1 ahora va dentro de una
+# carpeta unica "Tector 1" en la raiz de ese Drive: detecciones en
+# "Tector 1/Detecciones" (antes "BirdNET_Detecciones" a secas), y
+# config_horarios.txt / log_sistema.txt / log_reciente.txt sueltos
+# dentro de "Tector 1/". Diego se encarga por su cuenta de poner un
+# acceso directo a "Tector 1" dentro de la carpeta real "Laboratorio 6"
+# del equipo y de compartirla con quien haga falta -- este repo no
+# necesita saber nada de esa parte.
+#
+# Importante para el futuro: esta convencion vive en DOS repos, no
+# uno. LSD-Tector1.1 (este) tiene sus rutas propias en los scripts de
+# arriba, pero el motor de deteccion real corre desde el repo
+# separado "birdnet-lsd" (clonado en /home/lsd/birdnet-lsd), que arma
+# su propio destino de subida en un archivo LOCAL AL DISPOSITIVO,
+# generado UNA SOLA VEZ por migrar_a_birdnet_lsd.sh y nunca
+# reescrito despues (/home/lsd/birdnet-lsd/config/config_sincronizacion.txt,
+# gitignoreado, no viaja con git pull). Ese script recibe la ruta y
+# subcarpeta como ARGUMENTOS, pasados desde inicio_amanecer.sh /
+# inicio_atardecer.sh -- si el dia de este cambio (7/9) esos dos
+# scripts hubieran seguido pasando los argumentos viejos ("Laboratorio
+# 6" "BirdNET_Detecciones"), birdnet-lsd habria seguido subiendo ahi
+# para siempre sin que ningun cambio en ESTE repo lo notara. Verificar
+# SIEMPRE los dos lugares (los rclone de este repo Y los argumentos de
+# migrar_a_birdnet_lsd.sh) al auditar o cambiar la convencion de rutas
+# de Drive -- y recordar que un dispositivo ya migrado no vuelve a
+# leer esos argumentos nunca mas, hay que corregir su config local a
+# mano (SSH) si ya paso por la migracion con el valor viejo.
 #
 # Para generar un token nuevo con este scope (si hay que rehacerlo):
 #   rclone authorize drive --drive-scope drive.file <client_id> <client_secret>
