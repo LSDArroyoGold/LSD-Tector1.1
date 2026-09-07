@@ -36,14 +36,14 @@ if { [[ ! -f "$MARCA" ]] && [[ ! "$HORA_ACTUAL" < "$HORARIO" ]] && [[ "$HORA_ACT
 		DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 		DETECCIONES_OK=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" ! -name "*-nbw.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 		HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
-		PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60} printf "%02d:%02d\n", h, m}')
+		PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 		python3 /home/lsd/log_sistema.py SIN_CONEXION atardecer $PROXIMA_VENTANA "$DETECCIONES ($DETECCIONES_OK OK)"
 		bash /home/lsd/auto_sync_horarios.sh
-		python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
+		timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 		sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 		sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
 		sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt
-		python3 -c "
+		timeout 20 python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
 from pijuice import PiJuice
@@ -56,7 +56,7 @@ pj.power.SetPowerOff(30)
 	sudo systemctl restart systemd-timesyncd
 	sleep 5
 
-	python3 /home/lsd/sync_pijuice_rtc.py
+	timeout 20 python3 /home/lsd/sync_pijuice_rtc.py
 
 	# Ver el comentario equivalente en cierre_amanecer.sh.
 	if systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
@@ -85,7 +85,7 @@ pj.power.SetPowerOff(30)
 	timeout 90 rclone copy gdrive:config_horarios.txt /home/lsd/
 
 	HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
-	PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60} printf "%02d:%02d\n", h, m}')
+	PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 
 	python3 /home/lsd/log_sistema.py FIN atardecer $PROXIMA_VENTANA "$DETECCIONES ($DETECCIONES_OK OK)"
 
@@ -96,8 +96,8 @@ pj.power.SetPowerOff(30)
 	sed -i 's/VENTANA_ACTIVA = .*/VENTANA_ACTIVA = NONE/' /home/lsd/config_general.txt
 	sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt
 
-	python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
-	python3 -c "
+	timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
+	timeout 20 python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
 from pijuice import PiJuice

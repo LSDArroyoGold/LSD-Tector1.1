@@ -10,7 +10,7 @@ fi
 
 UMBRAL=$(awk -F'=' '/UMBRAL_BATERIA/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
 
-NIVEL=$(python3 -c "
+NIVEL=$(timeout 20 python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
 from pijuice import PiJuice

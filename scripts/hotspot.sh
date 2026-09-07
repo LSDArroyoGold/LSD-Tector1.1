@@ -89,7 +89,7 @@ EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 2 ]; then
     log "Sin respuesta en el portal tras 15 minutos. Apagando para conservar batería."
-    python3 -c "
+    timeout 20 python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
 from pijuice import PiJuice
@@ -110,7 +110,7 @@ fi
 # Sincronizar hora
 sudo systemctl restart systemd-timesyncd
 sleep 5
-python3 /home/lsd/sync_pijuice_rtc.py
+timeout 20 python3 /home/lsd/sync_pijuice_rtc.py
 
 SSID_CONECTADA=$(nmcli -t -f active,ssid dev wifi | awk -F: '$1=="yes"{print $2; exit}')
 
@@ -142,10 +142,10 @@ else
     HORA_WAKE=$(awk -F'=' '/inicio_amanecer/{print $2}' "$CONFIG_HORARIOS" | tr -d ' \r')
 fi
 
-PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60} printf "%02d:%02d\n", h, m}')
+PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 
 # Programar alarma y apagar
-python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
+timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 log "Conectado a $SSID_CONECTADA. Próxima ventana: $PROXIMA_VENTANA. Apagando."
 
 # Subir log a Drive
@@ -154,7 +154,7 @@ bash /home/lsd/generar_log_reciente.sh
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 
-python3 -c "
+timeout 20 python3 -c "
 import sys
 sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
 from pijuice import PiJuice
