@@ -24,5 +24,14 @@ CIERRE_FORZADO = FALSE
 # tector1: 1.4GB en 144 dias reales, ~9.7MB/dia) -> 3072MB (3GB) el
 # mismo dia, a pedido explicito de Diego para que local y Drive queden
 # parejos con el mismo numero.
+#
+# 11/9/2026: el borrado de DRIVE quedo APAGADO. El interruptor NO esta aca
+# sino en limpiar_retencion.sh (BORRAR_DE_DRIVE=NO), porque este archivo no
+# se sincroniza --guarda estado en vivo del equipo-- y en un Tector ya
+# instalado en campo no habria forma de cambiarlo a distancia. El numero de
+# abajo queda escrito pero no se usa mientras ese interruptor este en NO.
+#
+# El tope LOCAL si sigue activo: no es politica de datos, es que si la
+# microSD se llena el equipo deja de grabar.
 RETENCION_AUDIO_LOCAL_MB = 3072
 RETENCION_DRIVE_MB = 3072
