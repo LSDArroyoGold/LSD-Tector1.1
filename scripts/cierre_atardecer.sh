@@ -72,8 +72,24 @@ pj.power.SetPowerOff(30)
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
 	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ "gdrive:Tector 1/Detecciones" --include "*.mp3"; then
-		# Retencion local Y de Drive por tamaño, borrando carpetas de fecha
-		# ENTERAS -- ver limpiar_retencion.sh para el detalle completo.
+		# El resumen del dia va ANTES de cualquier limpieza, siempre. Es
+		# una fila por deteccion --especie, confianza, hora-- que pesa unos
+		# pocos KB contra los ~10 MB de audio del mismo dia, y no se borra
+		# nunca. Importa porque en esta version el nombre del mp3 ES el
+		# dato: sin esto, borrar un audio --por retencion o a mano-- borra
+		# tambien la deteccion.
+		#
+		# El orden importa: si se limpiara primero, un dia podria irse sin
+		# haber quedado nunca resumido.
+		#
+		# La primera corrida ademas recupera todo el historial que hoy
+		# existe solo como nombres de archivo. Puede tardar unos segundos
+		# una unica vez.
+		python3 /home/lsd/resumir_dia.py >/dev/null 2>&1
+		timeout 90 rclone copy /home/lsd/resumenes/ "gdrive:Tector 1/Resumenes" --include "*.csv"
+
+		# limpiar_retencion.sh: hoy solo cuida que la microSD no se llene.
+		# De Drive no borra nada -- ver el encabezado de ese script.
 		bash /home/lsd/limpiar_retencion.sh
 	fi
 
