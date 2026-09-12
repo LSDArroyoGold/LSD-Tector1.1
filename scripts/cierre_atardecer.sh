@@ -33,8 +33,8 @@ if { [[ ! -f "$MARCA" ]] && [[ ! "$HORA_ACTUAL" < "$HORARIO" ]] && [[ "$HORA_ACT
 		rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 		HORA_INICIO=$(awk -F'=' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 		HORA_FIN=$(awk -F'=' '/fin_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
-		DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
-		DETECCIONES_OK=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" ! -name "*-nbw.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
+		DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "(?:birdnet|tectornet)-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
+		DETECCIONES_OK=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" ! -name "*-nbw.mp3" 2>/dev/null | grep -oP "(?:birdnet|tectornet)-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 		HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 		PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 		python3 /home/lsd/log_sistema.py SIN_CONEXION atardecer $PROXIMA_VENTANA "$DETECCIONES ($DETECCIONES_OK OK)"
@@ -95,9 +95,9 @@ pj.power.SetPowerOff(30)
 
 	HORA_INICIO=$(awk -F'=' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
 	HORA_FIN=$(awk -F'=' '/fin_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r' | tr -d ':')
-	DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
+	DETECCIONES=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" 2>/dev/null | grep -oP "(?:birdnet|tectornet)-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 	# Ver el comentario equivalente en cierre_amanecer.sh.
-	DETECCIONES_OK=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" ! -name "*-nbw.mp3" 2>/dev/null | grep -oP "birdnet-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
+	DETECCIONES_OK=$(find /home/lsd/BirdSongs/Extracted/By_Date/$(date +%Y-%m-%d)/ -name "*.mp3" ! -name "*-nbw.mp3" 2>/dev/null | grep -oP "(?:birdnet|tectornet)-\K[0-9]{2}:[0-9]{2}" | awk -F: -v ini="$HORA_INICIO" -v fin="$HORA_FIN" '{t=$1*100+$2; if(t>=ini && t<=fin) print}' | wc -l)
 
 	bash /home/lsd/auto_sync_horarios.sh
 
