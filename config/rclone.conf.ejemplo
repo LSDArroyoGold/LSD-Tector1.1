@@ -14,12 +14,14 @@
 #   2. Agregar la clave PUBLICA en el servidor, en
 #      /etc/ssh/tector_keys/<usuario>.
 #   3. Guardar las host keys del servidor en el known_hosts del usuario:
-#      ssh-keyscan tectorserver.tail97f604.ts.net >> ~/.ssh/known_hosts
+#      ssh-keyscan 100.83.125.103 >> ~/.ssh/known_hosts
+#      (IP de Tailscale, no el nombre: con el Funnel del Hub activo, el
+#      nombre publico resuelve a otra IP en los equipos sin MagicDNS.)
 #   4. Copiar este archivo a ~/.config/rclone/rclone.conf, chmod 600.
 #   5. Verificar: rclone lsd servidor:data
 [servidor]
 type = sftp
-host = tectorserver.tail97f604.ts.net
+host = 100.83.125.103
 user = tector1
 key_file = ~/.ssh/id_ed25519_servidor
 # known_hosts_file por defecto (~/.ssh/known_hosts): rclone verifica la

@@ -2,7 +2,7 @@
 
 Este repositorio contiene todo el software necesario para replicar el sistema de monitoreo autónomo de aves LSD-Tector, desarrollado en el Laboratorio de Sistemas Dinámicos (LSD), Facultad de Ciencias Exactas y Naturales, Universidad de Buenos Aires.
 
-El sistema gestiona automáticamente ventanas de grabación en horarios de amanecer y atardecer, identifica especies mediante BirdNET-Pi, envía detecciones a Google Drive, y administra el ciclo de encendido y apagado de la Raspberry Pi mediante el RTC de la PiJuice HAT. Para una descripción completa del hardware y el diseño físico del dispositivo, referirse al artículo asociado.
+El sistema gestiona automáticamente ventanas de grabación en horarios de amanecer y atardecer, identifica especies mediante TectorNET-Pi (Perch 2.0 + BirdSet), envía detecciones al servidor propio del laboratorio (SFTP por Tailscale), y administra el ciclo de encendido y apagado de la Raspberry Pi mediante el RTC de la PiJuice HAT. Para una descripción completa del hardware y el diseño físico del dispositivo, referirse al artículo asociado.
 
 Este software fue desarrollado y probado sobre una **Raspberry Pi 4 Model B (4GB RAM)** con una **PiJuice HAT** como módulo de gestión de energía. No se garantiza compatibilidad con otros modelos o configuraciones de hardware.
 
@@ -11,7 +11,7 @@ Este software fue desarrollado y probado sobre una **Raspberry Pi 4 Model B (4GB
 ## Dependencias
 
 - Raspberry Pi OS Full 64-bit (Bookworm)
-- BirdNET-Pi
+- TectorNET-Pi (motor de detección, repo `LSDArroyoGold/TectorNET-Pi`)
 - Python 3 (incluido en Raspberry Pi OS)
 - rclone
 - astral (librería Python)
@@ -28,61 +28,11 @@ Instalar **Raspberry Pi OS Full 64-bit (Bookworm)** en la microSD usando [Raspbe
 
 Una vez flasheada la microSD, insertarla en la Raspberry Pi y encenderla.
 
-### 2. BirdNET-Pi
+### 2. TectorNET-Pi
 
-Desde la terminal de la RP, ejecutar:
+El motor de detección es [TectorNET-Pi](https://github.com/LSDArroyoGold/TectorNET-Pi). Clonarlo en `/home/lsd/TectorNET-Pi` y seguir su README para instalar el servicio `TectorNET-Pi.service`. No se usa BirdNET-Pi ni ninguno de sus servicios web.
 
-```bash
-curl -s https://raw.githubusercontent.com/Nachtzuster/BirdNET-Pi/main/newinstaller.sh | bash
-```
-
-La instalación tarda varios minutos. Una vez finalizada, BirdNET-Pi queda corriendo automáticamente y es accesible desde cualquier dispositivo en la misma red ingresando `http://[IP_de_la_RP]` en el navegador. Para obtener la IP de la Raspberry Pi, ejecutar desde su terminal:
-
-```bash
-hostname -I
-```
-
-El primer valor que devuelve es la IP local del dispositivo.
-
-Una vez instalado, configurar la gestión de disco para evitar que la tarjeta microSD se llene con el tiempo:
-
-```bash
-sudo nano /etc/birdnet/birdnet.conf
-```
-Buscar los parámetros `FULL_DISK` y `PURGE_THRESHOLD` y establecerlos así:
-
-```
-FULL_DISK=purge
-PURGE_THRESHOLD=75
-```
-Con esta configuración, cuando el disco supere el 75% de ocupación, BirdNET-Pi eliminará automáticamente las grabaciones del día más antiguo para liberar espacio. Guardar con **Ctrl+O** y salir con **Ctrl+X**.
-
-### 3. Reducir el consumo de BirdNET-Pi para uso desatendido
-
-BirdNET-Pi instala por defecto un conjunto de servicios pensados para cuando alguien mira el dashboard desde el navegador en la misma red (streaming de audio en vivo, visor de espectrograma, gráficos, terminal web, panel de estadísticas). En un dispositivo desatendido en el campo no hay nadie mirando esos servicios, y miden un consumo real: apagarlos, junto con no arrancar el entorno gráfico de escritorio (que tampoco tiene sentido sin monitor conectado), midió una reducción de **~19% en el consumo instantáneo** en pruebas de campo — sin afectar la grabación, el análisis ni la subida a BirdWeather, que no dependen de ninguno de estos servicios.
-
-Deshabilitar los servicios de dashboard/streaming (quedan enmascarados, no se pueden arrancar ni por accidente):
-
-```bash
-sudo systemctl disable --now icecast2.service livestream.service chart_viewer.service \
-    spectrogram_viewer.service web_terminal.service caddy.service birdnet_stats.service \
-    birdnet_log.service php8.4-fpm.service
-sudo systemctl mask icecast2.service livestream.service chart_viewer.service \
-    spectrogram_viewer.service web_terminal.service caddy.service birdnet_stats.service \
-    birdnet_log.service php8.4-fpm.service
-```
-
-> **Nota:** `icecast2` y `php8.4-fpm` son scripts SysV, no unidades systemd nativas — si el `disable --now` no los frena del todo, parar el proceso a mano con `sudo systemctl stop icecast2.service` (o el que corresponda) y confirmar con `systemctl is-active`.
-
-Arrancar directamente en modo consola, sin sesión gráfica (la grabación y el análisis no dependen del escritorio — `birdnet_recording.sh` ya inicia su propio `pulseaudio` si hace falta):
-
-```bash
-sudo systemctl set-default multi-user.target
-```
-
-Si en algún momento hace falta conectar un monitor en el laboratorio para debug visual, activar el entorno gráfico puntualmente con `sudo systemctl isolate graphical.target` (no hace falta revertir el paso anterior; con el próximo reinicio vuelve a arrancar en modo consola).
-
-### 4. Paquetes del sistema
+### 3. Paquetes del sistema
 
 ```bash
 sudo apt update
@@ -99,7 +49,7 @@ which hwclock
 
 Debe devolver `/usr/sbin/hwclock`.
 
-### 5. Habilitar I2C
+### 4. Habilitar I2C
 
 La PiJuice se comunica con la Raspberry Pi mediante el protocolo I2C. Para habilitarlo:
 
@@ -119,19 +69,19 @@ Verificar que la PiJuice es detectada correctamente en el bus I2C (debe aparecer
 sudo i2cdetect -y 1
 ```
 
-### 6. Dependencias Python
+### 5. Dependencias Python
 
 ```bash
 pip install astral --break-system-packages
 ```
 
-### 7. API Python de PiJuice
+### 6. API Python de PiJuice
 
 El paquete oficial de PiJuice no está disponible en los repositorios estándar de Raspberry OS. Instalarlo directamente desde GitHub:
 
 ```bash
-git clone https://github.com/PiSupply/PiJuice.git /home/lsd/BirdNET-Pi/PiJuice
-cd /home/lsd/BirdNET-Pi/PiJuice/Software/Source
+git clone https://github.com/PiSupply/PiJuice.git /home/lsd/PiJuice
+cd /home/lsd/PiJuice/Software/Source
 pip install . --break-system-packages
 ```
 
@@ -140,7 +90,7 @@ Verificar que la API funciona correctamente:
 ```bash
 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 print(pj.status.GetStatus())
@@ -150,7 +100,7 @@ print(pj.status.GetChargeLevel())
 
 Si la PiJuice responde sin errores, la instalación fue exitosa.
 
-### 8. Clonar el repositorio
+### 7. Clonar el repositorio
 
 Clonar este repositorio en la Raspberry Pi:
 
@@ -196,73 +146,31 @@ Recargar la configuración de systemd para que reconozca los nuevos servicios:
 sudo systemctl daemon-reload
 ```
 
-### 9. rclone
+### 8. rclone y servidor de almacenamiento
 
-Instalar rclone:
+Google Drive ya no se usa. Las detecciones, los logs y los horarios viajan por SFTP al servidor del laboratorio (`tectorserver`, Debian, accesible por Tailscale). Cada dispositivo tiene su propio usuario SFTP enjaulado (`tector1`, `tector2`, `tectormini`) que solo escribe en su carpeta `data/`.
 
 ```bash
 sudo apt install rclone
+ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519_servidor
+ssh-keyscan 100.83.125.103 >> ~/.ssh/known_hosts
+mkdir -p ~/.config/rclone
+cp /home/lsd/rclone.conf.ejemplo ~/.config/rclone/rclone.conf   # user = tector1
+chmod 600 ~/.config/rclone/rclone.conf
+cat ~/.ssh/id_ed25519_servidor.pub
 ```
 
-**Autenticación con Google Drive**
-
-La autenticación con Google requiere un navegador con interfaz gráfica. Como BirdNET-Pi ocupa el navegador de la Raspberry Pi, la autenticación se realiza desde una PC con Windows o Linux como intermediaria.
-
-**En la PC intermediaria:**
-
-1. Descargar rclone para el sistema operativo correspondiente desde [https://rclone.org/downloads/](https://rclone.org/downloads/)
-2. Descomprimir el archivo
-3. Abrir una terminal (PowerShell en Windows) en la carpeta donde se descomprimió rclone
-4. Ejecutar el siguiente comando:
+La clave privada nunca sale de la Pi. La clave **pública** hay que agregarla en el servidor, en `/etc/ssh/tector_keys/tector1`. Se usa la IP de Tailscale (100.83.125.103) y no el nombre, porque el nombre público resuelve a otra IP en equipos sin MagicDNS. Verificar:
 
 ```bash
-.\rclone.exe authorize "drive"
+rclone lsd servidor:data
 ```
 
-> **Nota:** en Linux o macOS el comando es `./rclone authorize "drive"`.
+`SYNC_REMOTE` (`servidor`) y `SYNC_PATH` (`data`) en `config_general.txt` definen el destino; los scripts usan esos valores por defecto si faltan. Ver `config/rclone.conf.ejemplo`.
 
-5. El navegador se abrirá automáticamente. Iniciar sesión con la cuenta de Google deseada y otorgar los permisos solicitados.
-6. La terminal mostrará un token JSON entre llaves (`{...}`). Copiar el token completo, incluyendo las llaves.
+### 9. Archivos de configuración
 
-**En la Raspberry Pi:**
-
-Ejecutar el asistente de configuración:
-
-```bash
-rclone config
-```
-
-Seguir el asistente interactivo con las siguientes respuestas:
-
-- `n` → crear una nueva configuración
-- Nombre: `gdrive`
-- Seleccionar el número correspondiente a **Google Drive** en la lista
-- `client_id`: dejar vacío y presionar Enter
-- `client_secret`: dejar vacío y presionar Enter
-- Scope: opción `1` (acceso completo)
-- `service_account_file`: dejar vacío y presionar Enter
-- Configuración avanzada: `n`
-- Autenticación desde este dispositivo (auto config): `n`
-- Pegar el token JSON obtenido desde la PC intermediaria
-- Configurar como shared drive: `n`
-- Confirmar configuración: `y`
-- Salir del asistente: `q`
-
-> **Nota sobre `client_id` y `client_secret`:** dejarlos vacíos hace que rclone utilice las credenciales OAuth por defecto, que son compartidas entre todos los usuarios de rclone. Esa cuota compartida es global (no depende de cuánto suba este dispositivo en particular) y en la práctica puede saturarse — ya pasó, dejando un `rclone copy` reintentando durante varios minutos con errores `403 rateLimitExceeded`. Todas las llamadas a `rclone` en este proyecto tienen un `timeout` de 90 segundos para que, si esto ocurre, el script en curso continúe igual (el archivo pendiente queda para la próxima sincronización) en vez de quedarse esperando indefinidamente. Si se desea eliminar esta dependencia de la cuota compartida, generar un Client ID y Client Secret propios en Google Cloud Console siguiendo la guía oficial de rclone: [https://rclone.org/drive/#making-your-own-client-id](https://rclone.org/drive/#making-your-own-client-id). 
-
-**Verificación**
-
-Verificar que la conexión funciona correctamente listando las carpetas de Google Drive:
-
-```bash
-rclone lsd gdrive:
-```
-
-Si el comando devuelve la lista de carpetas existentes en la cuenta de Google, la configuración fue exitosa.
-
-### 10. Archivos de configuración
-
-Los archivos `config_general.txt` y `config_horarios.txt` ya fueron copiados a `/home/lsd/` en el paso 8. Ahora hay que editarlos según las necesidades del dispositivo.
+Los archivos `config_general.txt` y `config_horarios.txt` ya fueron copiados a `/home/lsd/` en el paso 7. Ahora hay que editarlos según las necesidades del dispositivo.
 
 **Editar `config_general.txt`:**
 
@@ -338,7 +246,7 @@ cat /home/lsd/config_horarios.txt
 ```
 
 Revisar que todos los valores fueron reemplazados correctamente, que los espacios alrededor del signo `=` respetan el formato indicado, y que no quedaron placeholders del tipo `<...>` sin reemplazar.
-### 11. Configurar el perfil de batería en la PiJuice
+### 10. Configurar el perfil de batería en la PiJuice
 
 Este paso le indica a la PiJuice las características de la batería conectada para que el fuel gauge y el gestor de carga funcionen correctamente. Ejecutar el script provisto:
 
@@ -353,7 +261,7 @@ Verificar que el perfil quedó correctamente aplicado:
 ```bash
 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 print(pj.config.GetBatteryProfile())
@@ -362,7 +270,7 @@ print(pj.config.GetBatteryProfile())
 
 La salida debe mostrar los parámetros configurados en el script.
 
-### 12. Configurar el comportamiento de encendido de la PiJuice
+### 11. Configurar el comportamiento de encendido de la PiJuice
 
 Por defecto, la PiJuice enciende automáticamente la Raspberry Pi al detectar alimentación externa (por ejemplo, cuando el panel solar empieza a entregar potencia al amanecer). Este comportamiento no es deseado en el sistema LSD-Tector, donde la RP solo debe encenderse mediante la alarma programada del RTC.
 
@@ -371,7 +279,7 @@ Para deshabilitar el encendido automático, ejecutar:
 ```bash
 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 config = pj.config.GetPowerInputsConfig()['data']
@@ -384,13 +292,13 @@ print(pj.config.GetPowerInputsConfig())
 La salida debe mostrar `'no_battery_turn_on': True`.
 
 
-### 13. Habilitar la sincronización del reloj al arranque
+### 12. Habilitar la sincronización del reloj al arranque
 
 La Raspberry Pi 4 no tiene reloj de tiempo real propio. La PiJuice registra su RTC como `rtc0` en el sistema, y ese RTC es el que conserva la hora cuando el dispositivo está apagado entre ventanas. El servicio `sync-rtc.service` copia la hora del RTC al reloj del sistema en cada arranque, mediante `hwclock --hctosys`.
 
 Esto es imprescindible para la operación en campo: la PiJuice despierta a la Raspberry Pi a la hora programada, y este servicio garantiza que el reloj del sistema tenga la hora real correcta antes de que el crontab evalúe los horarios de las ventanas. Sin esta sincronización, tras un arranque sin conexión a internet el reloj del sistema quedaría con la hora del último apagado y las ventanas no dispararían a la hora correcta.
 
-El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 8. Habilitarlo:
+El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 7. Habilitarlo:
 
 ```bash
 sudo systemctl enable sync-rtc.service
@@ -406,9 +314,9 @@ sudo systemctl status sync-rtc.service
 La salida debe indicar `active (exited)` o similar, sin errores.
 
 
-### 14. Habilitar el servicio hotspot
+### 13. Habilitar el servicio hotspot
 
-El servicio `hotspot.service` ejecuta el script `hotspot.sh` al arrancar el sistema. Este script verifica si `FIRST_START=TRUE` en `config_general.txt` y, en ese caso, activa el modo hotspot para configurar la red WiFi. El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 8. Habilitarlo:
+El servicio `hotspot.service` ejecuta el script `hotspot.sh` al arrancar el sistema. Este script verifica si `FIRST_START=TRUE` en `config_general.txt` y, en ese caso, activa el modo hotspot para configurar la red WiFi. El archivo del servicio ya fue copiado a `/etc/systemd/system/` en el paso 7. Habilitarlo:
 
 ```bash
 sudo systemctl enable hotspot.service
@@ -416,7 +324,7 @@ sudo systemctl enable hotspot.service
 
 > **Nota:** no es necesario ejecutar `start` sobre este servicio en este momento. Se ejecutará automáticamente en el próximo arranque de la Raspberry Pi.
 
-### 15. Configurar el crontab
+### 14. Configurar el crontab
 
 El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube a Drive las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, por la cuota de Drive, ver la nota sobre `client_id`/`client_secret` en el paso 9), la mayoría de las detecciones ya están arriba de todas formas.
 
@@ -467,31 +375,14 @@ sudo systemctl start cron
 
 **Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`. Este script no mantiene ningún clon del repositorio en la Pi: consulta la API de GitHub para saber cuál es el último commit de la rama `main`, lo compara contra el último que aplicó (guardado en `/home/lsd/.ultima_actualizacion`) y, solo si cambió, descarga cada archivo de `scripts/`, `python/` y `systemd/` directamente desde GitHub (`raw.githubusercontent.com`) y los deja en su ubicación activa en `/home/lsd/`. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Como el repo es público, no requiere ninguna credencial en la Pi, ni `git` instalado más allá de lo necesario para el paso 8. Para publicar una actualización, simplemente hacer `git push` a la rama `main` de este repositorio — el dispositivo la va a levantar en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
 
-### 16. Crear carpetas en Google Drive y subir archivos de configuración
+### 15. Carpetas en el servidor
 
-Crear las carpetas que utilizará el sistema en Google Drive:
-
-```bash
-rclone mkdir "gdrive:Laboratorio 6"
-rclone mkdir "gdrive:Laboratorio 6/BirdNET_Detecciones"
-```
-
-Subir los archivos de configuración iniciales:
+Las carpetas las crea el servidor (`/srv/tector/tector1/data`); los scripts crean el resto (`Detecciones/<fecha>/<Especie>/`, `Resumenes/`) al subir. Subir los archivos de configuración iniciales y verificar:
 
 ```bash
-rclone copy /home/lsd/config_horarios.txt "gdrive:Laboratorio 6/"
-rclone copy /home/lsd/config_general.txt "gdrive:Laboratorio 6/"
+rclone copy /home/lsd/config_horarios.txt servidor:data/
+rclone ls servidor:data
 ```
-
-Verificar que los archivos fueron subidos correctamente:
-
-```bash
-rclone ls "gdrive:Laboratorio 6/"
-```
-
-La salida debe listar los dos archivos de configuración.
-
-> **Nota:** los nombres de las carpetas en Google Drive (`Laboratorio 6` y `BirdNET_Detecciones`) están definidos por los scripts del sistema. Si se desea utilizar nombres diferentes, modificar las referencias correspondientes en todos los scripts antes de ejecutarlos.
 
 ---
 
@@ -516,11 +407,11 @@ A partir de este momento, el dispositivo opera de forma completamente autónoma 
 
 ---
 
-## Control remoto via Google Drive
+## Control remoto vía el servidor
 
-Una vez el dispositivo está en operación en campo, los archivos `config_horarios.txt` y `config_general.txt` en la carpeta `Laboratorio 6` de Google Drive pueden editarse desde cualquier lugar para modificar la configuración del dispositivo. Los cambios se aplican en el siguiente ciclo, cuando el dispositivo descarga la versión actualizada de Drive al final de la ventana de grabación.
+Una vez el dispositivo está en operación en campo, el archivo `config_horarios.txt` en `data/` del servidor (también editable desde Tector Hub) modifica la configuración del dispositivo. Los cambios se aplican en el siguiente ciclo, cuando el dispositivo descarga la versión actualizada del servidor al final de la ventana de grabación.
 
-El archivo `log_sistema.txt` se sube a Drive al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 10) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
+El archivo `log_sistema.txt` se sube al servidor al final de cada ventana y permite monitorear el estado del dispositivo de forma remota: nivel de batería y cantidad de detecciones registradas. Un cierre forzado por batería baja (ver el mecanismo descripto en el paso 10) se registra igual que un cierre normal (`FIN ventana ...`), pero con un horario anterior al de fin programado y un nivel de batería cercano a `UMBRAL_BATERIA`.
 
 Junto con `log_sistema.txt` también se sube `log_reciente.txt`, con el mismo contenido pero filtrado a solo los últimos 2 días — pensado para revisar la actividad reciente sin tener que scrollear todo el historial completo.
 
