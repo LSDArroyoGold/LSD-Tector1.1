@@ -12,7 +12,7 @@ def leer_config(archivo, clave):
 
 # Las coordenadas salen de config_general.txt (las de instalacion), SALVO que
 # config_horarios.txt traiga LAT= y LON=: ese archivo lo escribe la app de
-# Tector Hub y el equipo lo baja de Drive, asi que es la unica forma de
+# Tector Hub y el equipo lo baja del servidor, asi que es la unica forma de
 # cambiarlas a distancia (config_general.txt no se sincroniza). Si lo que
 # viene no es un numero, se ignora y se sigue con las de instalacion: un
 # valor roto no puede dejar al equipo sin horarios.
@@ -67,7 +67,13 @@ with open('/home/lsd/config_horarios.txt','w') as f:
 
 import subprocess
 try:
-    subprocess.run(['rclone', 'copy', '/home/lsd/config_horarios.txt', 'gdrive:Tector 1/'], timeout=90)
-    print("config_horarios.txt actualizado y subido a Drive")
+    def _cfg(clave, defecto):
+        for linea in open('/home/lsd/config_general.txt'):
+            if linea.split('=')[0].strip() == clave:
+                return linea.split('=', 1)[1].strip() or defecto
+        return defecto
+    SYNC_DEST = _cfg('SYNC_REMOTE', 'servidor') + ':' + _cfg('SYNC_PATH', 'data') + '/'
+    subprocess.run(['rclone', 'copy', '/home/lsd/config_horarios.txt', SYNC_DEST], timeout=90)
+    print("config_horarios.txt actualizado y subido al servidor")
 except subprocess.TimeoutExpired:
-    print("config_horarios.txt actualizado localmente, pero la subida a Drive tardó más de 90s y se abortó")
+    print("config_horarios.txt actualizado localmente, pero la subida al servidor tardó más de 90s y se abortó")

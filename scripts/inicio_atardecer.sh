@@ -3,6 +3,11 @@
 export RCLONE_CONFIG=/home/lsd/.config/rclone/rclone.conf
 export HOME=/home/lsd
 
+SYNC_REMOTE=$(awk -F'=' '/^SYNC_REMOTE/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_PATH=$(awk -F'=' '/^SYNC_PATH/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_REMOTE=${SYNC_REMOTE:-servidor}
+SYNC_PATH=${SYNC_PATH:-data}
+
 HORARIO=$(awk -F' = ' '/inicio_atardecer/{print $2}' /home/lsd/config_horarios.txt |  tr -d '\r')
 HORA_ACTUAL=$(date +%H:%M)
 FECHA_HOY=$(date +%Y-%m-%d)
@@ -33,31 +38,16 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 		echo "Sin conexión, abortando"
 		exit 1
 	fi
-	timeout 90 rclone copy /home/lsd/log_sistema.txt "gdrive:Tector 1/"
+	timeout 90 rclone copy /home/lsd/log_sistema.txt "$SYNC_REMOTE:$SYNC_PATH/"
 	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 
 	bash /home/lsd/actualizar_repo.sh
-	bash /home/lsd/aplicar_fix_audio_birdnet.sh
 
-	# Ver el comentario equivalente en inicio_amanecer.sh.
-	if [ -f /home/lsd/.tectornet_pi_migrado ]; then
-		if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
-			bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
-		fi
-	elif [ -f /home/lsd/.birdnet_lsd_migrado ]; then
-		if [ -f /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh ]; then
-			bash /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh
-		fi
-	else
-		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
-		if [ -d /home/lsd/TectorNET-Pi ] || git clone https://github.com/LSDArroyoGold/TectorNET-Pi.git /home/lsd/TectorNET-Pi; then
-			if [ -f /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh ]; then
-				bash /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh "Tector 1" "Detecciones"
-			fi
-		else
-			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar TectorNET-Pi (git no disponible?)"
-		fi
+	# Actualiza el motor (git pull + chequeo de salud, revierte solo si el
+	# commit nuevo rompe el servicio).
+	if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
+		bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
 	fi
 fi

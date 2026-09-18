@@ -3,6 +3,11 @@
 export RCLONE_CONFIG=/home/lsd/.config/rclone/rclone.conf
 export HOME=/home/lsd
 
+SYNC_REMOTE=$(awk -F'=' '/^SYNC_REMOTE/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_PATH=$(awk -F'=' '/^SYNC_PATH/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_REMOTE=${SYNC_REMOTE:-servidor}
+SYNC_PATH=${SYNC_PATH:-data}
+
 HORARIO=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt |  tr -d '\r')
 HORA_ACTUAL=$(date +%H:%M)
 FECHA_HOY=$(date +%Y-%m-%d)
@@ -40,52 +45,16 @@ if [ ! -f "$MARCA" ] && [[ ! "$HORA_ACTUAL" < "$HORARIO_DELAY" ]] && [[ "$HORA_A
 		echo "Sin conexión, abortando"
 		exit 1
 	fi
-	timeout 90 rclone copy /home/lsd/log_sistema.txt "gdrive:Tector 1/"
+	timeout 90 rclone copy /home/lsd/log_sistema.txt "$SYNC_REMOTE:$SYNC_PATH/"
 	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 
 	bash /home/lsd/actualizar_repo.sh
-	bash /home/lsd/aplicar_fix_audio_birdnet.sh
 
-	# Migracion/renombrado del motor propio (TectorNET-Pi, antes
-	# birdnet-lsd, renombrado el 7/9/2026): disparado por este mismo ciclo
-	# de ventana -- el dispositivo esta en el campo sin acceso SSH, asi que
-	# tiene que poder completarse solo. Tres estados posibles segun la
-	# marca presente:
-	#   - sin ninguna marca: nunca se instalo el motor propio, todavia en
-	#     BirdNET-Pi stock -> migrar_a_tectornet_pi.sh (clone + instalacion
-	#     completa, nunca deja al dispositivo sin motor de deteccion:
-	#     BirdNET-Pi stock sigue activo hasta confirmar que
-	#     TectorNET-Pi.service arranco bien).
-	#   - marca vieja (.birdnet_lsd_migrado) sin la nueva: motor propio ya
-	#     instalado bajo el nombre viejo -> renombrar_a_tectornet_pi.sh (mv
-	#     en el lugar, sin reinstalar nada, mismo principio de no dejar el
-	#     dispositivo sin motor sano a mitad de camino).
-	#   - marca nueva (.tectornet_pi_migrado): ya en el nombre nuevo ->
-	#     actualizar_tectornet_pi.sh (git pull + chequeo de salud, revierte
-	#     solo si el commit nuevo rompe el servicio).
-	# Los tres scripts son idempotentes -- si algo falla a mitad de camino,
-	# no rompe nada y el proximo ciclo retoma solo.
-	if [ -f /home/lsd/.tectornet_pi_migrado ]; then
-		if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
-			bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
-		fi
-	elif [ -f /home/lsd/.birdnet_lsd_migrado ]; then
-		if [ -f /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh ]; then
-			bash /home/lsd/birdnet-lsd/scripts/renombrar_a_tectornet_pi.sh
-		fi
-	else
-		# LSD-Tector1.1 evita depender de git a proposito (todo via curl) --
-		# TectorNET-Pi si lo necesita (clone/pull), asi que se instala aca si
-		# hace falta antes de intentar el clone.
-		command -v git &>/dev/null || sudo apt-get install -y git &>/dev/null
-		if [ -d /home/lsd/TectorNET-Pi ] || git clone https://github.com/LSDArroyoGold/TectorNET-Pi.git /home/lsd/TectorNET-Pi; then
-			if [ -f /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh ]; then
-				bash /home/lsd/TectorNET-Pi/scripts/migrar_a_tectornet_pi.sh "Tector 1" "Detecciones"
-			fi
-		else
-			python3 /home/lsd/log_sistema.py MSG "ALERTA: no se pudo clonar TectorNET-Pi (git no disponible?)"
-		fi
+	# Actualiza el motor (git pull + chequeo de salud, revierte solo si el
+	# commit nuevo rompe el servicio).
+	if [ -f /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh ]; then
+		bash /home/lsd/TectorNET-Pi/scripts/actualizar_tectornet_pi.sh
 	fi
 fi

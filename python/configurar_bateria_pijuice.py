@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 
 pj = PiJuice(1, 0x14)

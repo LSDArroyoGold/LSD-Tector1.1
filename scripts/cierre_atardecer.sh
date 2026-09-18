@@ -3,6 +3,11 @@
 export RCLONE_CONFIG=/home/lsd/.config/rclone/rclone.conf
 export HOME=/home/lsd
 
+SYNC_REMOTE=$(awk -F'=' '/^SYNC_REMOTE/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_PATH=$(awk -F'=' '/^SYNC_PATH/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_REMOTE=${SYNC_REMOTE:-servidor}
+SYNC_PATH=${SYNC_PATH:-data}
+
 HORARIO=$(awk -F'=' '/fin_atardecer/{print $2}' /home/lsd/config_horarios.txt | tr -d ' \r')
 HORA_ACTUAL=$(date +%H:%M)
 FECHA_HOY=$(date +%Y-%m-%d)
@@ -45,7 +50,7 @@ if { [[ ! -f "$MARCA" ]] && [[ ! "$HORA_ACTUAL" < "$HORARIO" ]] && [[ "$HORA_ACT
 		sed -i 's/CIERRE_FORZADO = .*/CIERRE_FORZADO = FALSE/' /home/lsd/config_general.txt
 		timeout 20 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 pj.power.SetPowerOff(30)
@@ -62,16 +67,13 @@ pj.power.SetPowerOff(30)
 	if systemctl list-unit-files TectorNET-Pi.service &>/dev/null; then
 		systemctl is-active --quiet TectorNET-Pi.service || \
 			python3 /home/lsd/log_sistema.py MSG "ALERTA: TectorNET-Pi.service caido"
-	elif systemctl list-unit-files birdnet-lsd.service &>/dev/null; then
-		systemctl is-active --quiet birdnet-lsd.service || \
-			python3 /home/lsd/log_sistema.py MSG "ALERTA: birdnet-lsd.service caido"
 	fi
 
 	find /home/lsd/BirdSongs/Extracted/By_Date/ -name "*.png" -delete
 
 	rm -rf /home/lsd/BirdSongs/Extracted/Charts/*
 
-	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ "gdrive:Tector 1/Detecciones" --include "*.mp3"; then
+	if timeout 90 rclone copy /home/lsd/BirdSongs/Extracted/By_Date/ "$SYNC_REMOTE:$SYNC_PATH/Detecciones" --include "*.mp3"; then
 		# El resumen del dia va ANTES de cualquier limpieza, siempre. Es
 		# una fila por deteccion --especie, confianza, hora-- que pesa unos
 		# pocos KB contra los ~10 MB de audio del mismo dia, y no se borra
@@ -86,10 +88,9 @@ pj.power.SetPowerOff(30)
 		# existe solo como nombres de archivo. Puede tardar unos segundos
 		# una unica vez.
 		python3 /home/lsd/resumir_dia.py >/dev/null 2>&1
-		timeout 90 rclone copy /home/lsd/resumenes/ "gdrive:Tector 1/Resumenes" --include "*.csv"
+		timeout 90 rclone copy /home/lsd/resumenes/ "$SYNC_REMOTE:$SYNC_PATH/Resumenes" --include "*.csv"
 
-		# limpiar_retencion.sh: hoy solo cuida que la microSD no se llene.
-		# De Drive no borra nada -- ver el encabezado de ese script.
+		# limpiar_retencion.sh: cuida que la microSD no se llene (solo local).
 		bash /home/lsd/limpiar_retencion.sh
 	fi
 
@@ -101,14 +102,14 @@ pj.power.SetPowerOff(30)
 
 	bash /home/lsd/auto_sync_horarios.sh
 
-	timeout 90 rclone copy "gdrive:Tector 1/config_horarios.txt" /home/lsd/
+	timeout 90 rclone copy "$SYNC_REMOTE:$SYNC_PATH/config_horarios.txt" /home/lsd/
 
 	HORA_WAKE=$(awk -F' = ' '/inicio_amanecer/{print $2}' /home/lsd/config_horarios.txt | tr -d '\r')
 	PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; h=h+1; if(h>=24){h=h-24}} printf "%02d:%02d\n", h, m}')
 
 	python3 /home/lsd/log_sistema.py FIN atardecer $PROXIMA_VENTANA "$DETECCIONES ($DETECCIONES_OK OK)"
 
-	timeout 90 rclone copy /home/lsd/log_sistema.txt "gdrive:Tector 1/"
+	timeout 90 rclone copy /home/lsd/log_sistema.txt "$SYNC_REMOTE:$SYNC_PATH/"
 	bash /home/lsd/generar_log_reciente.sh
 
 	sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
@@ -118,7 +119,7 @@ pj.power.SetPowerOff(30)
 	timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 	timeout 20 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 pj.power.SetPowerOff(30)

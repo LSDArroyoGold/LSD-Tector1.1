@@ -3,6 +3,11 @@
 export RCLONE_CONFIG=/home/lsd/.config/rclone/rclone.conf
 export HOME=/home/lsd
 
+SYNC_REMOTE=$(awk -F'=' '/^SYNC_REMOTE/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_PATH=$(awk -F'=' '/^SYNC_PATH/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
+SYNC_REMOTE=${SYNC_REMOTE:-servidor}
+SYNC_PATH=${SYNC_PATH:-data}
+
 LOG_PATH="/home/lsd/log_sistema.txt"
 CONFIG_PATH="/home/lsd/config_general.txt"
 CONFIG_HORARIOS="/home/lsd/config_horarios.txt"
@@ -91,7 +96,7 @@ if [ $EXIT_CODE -eq 2 ]; then
     log "Sin respuesta en el portal tras 15 minutos. Apagando para conservar batería."
     timeout 20 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 pj.power.SetPowerOff(30)
@@ -124,7 +129,7 @@ sed -i "s/LON=.*/LON=$LON/" /home/lsd/config_general.txt
 sed -i 's/FIRST_START = TRUE/FIRST_START = FALSE/' "$CONFIG_PATH"
 
 bash /home/lsd/auto_sync_horarios.sh
-timeout 90 rclone copy /home/lsd/config_horarios.txt "gdrive:Tector 1/"
+timeout 90 rclone copy /home/lsd/config_horarios.txt "$SYNC_REMOTE:$SYNC_PATH/"
 
 # Calcular próxima ventana (la más cercana a futuro)
 HORA_ACTUAL_MIN=$(date +%H%M | sed 's/^0*//')
@@ -148,15 +153,15 @@ PROXIMA_VENTANA=$(echo "$HORA_WAKE" | awk -F: '{m=$2+2; h=$1; if(m>=60){m=m-60; 
 timeout 20 python3 /home/lsd/set_wake_pijuice.py $HORA_WAKE
 log "Conectado a $SSID_CONECTADA. Próxima ventana: $PROXIMA_VENTANA. Apagando."
 
-# Subir log a Drive
-timeout 90 rclone copy "$LOG_PATH" "gdrive:Tector 1/"
+# Subir log al servidor
+timeout 90 rclone copy "$LOG_PATH" "$SYNC_REMOTE:$SYNC_PATH/"
 bash /home/lsd/generar_log_reciente.sh
 
 sudo chown lsd:lsd /home/lsd/.config/rclone/rclone.conf
 
 timeout 20 python3 -c "
 import sys
-sys.path.append('/home/lsd/BirdNET-Pi/PiJuice/Software/Source')
+sys.path.append('/home/lsd/PiJuice/Software/Source')
 from pijuice import PiJuice
 pj = PiJuice(1, 0x14)
 pj.power.SetPowerOff(30)

@@ -17,7 +17,7 @@
 # bytes/dia reales) como proxy -- misma logica de eventos (INICIO/FIN de
 # ventana + alertas ocasionales), asi que debería ser un numero
 # razonable, pero NO es una medicion de tector1 real. motor.log es el
-# MISMO codigo compartido (birdnet-lsd) corriendo en los dos
+# MISMO codigo compartido (TectorNET-Pi) corriendo en los dos
 # dispositivos, asi que el limite de tector2 (calibrado con el peor caso
 # de labo ruidoso) es si acaso MAS generoso todavia para tector1 en
 # campo real (deberia ser menos ruidoso que un labo). PENDIENTE
@@ -33,7 +33,7 @@
 	su lsd lsd
 }
 
-/home/lsd/birdnet-lsd/motor.log
+/home/lsd/TectorNET-Pi/motor.log
 {
 	size 1G
 	rotate 0

@@ -1,82 +1,26 @@
-# Copiar a rclone.conf (sin el .ejemplo) en /home/lsd/.config/rclone/ --
-# NUNCA se sincroniza por git (ver .gitignore y la nota historica en
-# actualizar_repo.sh sobre por que).
+# Copiar a rclone.conf (sin el .ejemplo) en ~/.config/rclone/ (el HOME real
+# del usuario que corre los scripts, ver REAL_USER/USER_HOME en cada uno).
+# El nombre de la seccion tiene que coincidir con SYNC_REMOTE de
+# config/config_general.txt.
 #
-# Migrado el 6/9/2026 (dos intentos, el segundo es el que quedo):
+# Destino: el servidor propio del LSD-Tector ("tectorserver", Debian, SFTP
+# enjaulado por usuario). No hay credenciales que venzan ni cuenta de nadie
+# asociada: cada dispositivo tiene su propio usuario SFTP (tector1, tector2,
+# tectormini), que solo puede escribir en su carpeta data/.
 #
-# 1) Diagnostico real del problema original: el refresh token de OAuth
-#    caducaba cada 7 dias exactos. Causa: rclone pedia el scope "drive"
-#    completo, que Google clasifica "restringido" -- ese nivel exige
-#    verificacion (revision de seguridad CASA) para dejar de tener el
-#    limite de 7 dias, aplica AUNQUE la app este publicada en
-#    produccion (se penso primero que era Testing vs Produccion, no
-#    era eso).
-#
-# 2) Primer intento de fix: cuenta de servicio. NO FUNCIONA para subir
-#    archivos en una cuenta de Google personal (no Workspace) -- aunque
-#    la carpeta este compartida como Editor, Google la rechaza con
-#    "Service Accounts do not have storage quota" al intentar crear
-#    cualquier archivo. Solo sirve para LEER. Descartado.
-#
-# 3) Fix real: OAuth de usuario con scope "drive.file" en vez de
-#    "drive" completo. Es un scope NO sensible (confirmado en la
-#    consola de Google) -- no tiene el limite de 7 dias. Sorpresa
-#    verificada empiricamente: aunque "drive.file" en teoria solo ve
-#    archivos creados por la propia app, en la practica SI sigue
-#    viendo (leer Y escribir) todo lo que este client_id ya habia
-#    creado antes bajo el scope completo -- probado en vivo el 6/9,
-#    "BirdNET_Detecciones" aparece completo con el historico real,
-#    desde abril 2026. Aparece en la RAIZ del remoto directamente
-#    (no anidado bajo "Laboratorio 6"), por eso las rutas en los
-#    scripts pasaron a ser "gdrive:BirdNET_Detecciones" (arreglado
-#    ese dia, commit 2245d16) -- ESTO YA NO ES ASI, ver 7/9 abajo.
-#
-# 7/9/2026: la convencion de rutas cambio nuevamente. La cuenta a la
-# que sube tector1 (lsdarroyogold@gmail.com) nunca tuvo NADA
-# compartido con el resto del laboratorio -- ni "BirdNET_Detecciones"
-# en la raiz, ni la vieja "Laboratorio 6" de la migracion a cuenta de
-# servicio (esa carpeta era de OTRA cuenta y da 404 con este token).
-# A pedido de Diego, todo lo que sube tector1 ahora va dentro de una
-# carpeta unica "Tector 1" en la raiz de ese Drive: detecciones en
-# "Tector 1/Detecciones" (antes "BirdNET_Detecciones" a secas), y
-# config_horarios.txt / log_sistema.txt / log_reciente.txt sueltos
-# dentro de "Tector 1/". Diego se encarga por su cuenta de poner un
-# acceso directo a "Tector 1" dentro de la carpeta real "Laboratorio 6"
-# del equipo y de compartirla con quien haga falta -- este repo no
-# necesita saber nada de esa parte.
-#
-# Importante para el futuro: esta convencion vive en DOS repos, no
-# uno. LSD-Tector1.1 (este) tiene sus rutas propias en los scripts de
-# arriba, pero el motor de deteccion real corre desde el repo
-# separado "birdnet-lsd" (clonado en /home/lsd/birdnet-lsd), que arma
-# su propio destino de subida en un archivo LOCAL AL DISPOSITIVO,
-# generado UNA SOLA VEZ por migrar_a_birdnet_lsd.sh y nunca
-# reescrito despues (/home/lsd/birdnet-lsd/config/config_sincronizacion.txt,
-# gitignoreado, no viaja con git pull). Ese script recibe la ruta y
-# subcarpeta como ARGUMENTOS, pasados desde inicio_amanecer.sh /
-# inicio_atardecer.sh -- si el dia de este cambio (7/9) esos dos
-# scripts hubieran seguido pasando los argumentos viejos ("Laboratorio
-# 6" "BirdNET_Detecciones"), birdnet-lsd habria seguido subiendo ahi
-# para siempre sin que ningun cambio en ESTE repo lo notara. Verificar
-# SIEMPRE los dos lugares (los rclone de este repo Y los argumentos de
-# migrar_a_birdnet_lsd.sh) al auditar o cambiar la convencion de rutas
-# de Drive -- y recordar que un dispositivo ya migrado no vuelve a
-# leer esos argumentos nunca mas, hay que corregir su config local a
-# mano (SSH) si ya paso por la migracion con el valor viejo.
-#
-# Para generar un token nuevo con este scope (si hay que rehacerlo):
-#   rclone authorize drive --drive-scope drive.file <client_id> <client_secret>
-# OJO: "rclone authorize" SIN el flag --drive-scope pide el scope
-# completo por default, sin avisar -- confirmado el 6/9 con un intento
-# fallido (tokeninfo de Google mostro "scope: .../auth/drive", no
-# drive.file, pese a que la config decia scope=drive.file). Verificar
-# siempre con:
-#   curl -s "https://oauth2.googleapis.com/tokeninfo?access_token=<access_token>"
-# antes de dar un token nuevo por bueno.
-[gdrive]
-type = drive
-scope = drive.file
-client_id = ...
-client_secret = ...
-token = {"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}
-team_drive =
+# Alta de un dispositivo (una sola vez):
+#   1. ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519_servidor   (en el
+#      dispositivo; la clave privada NUNCA sale de ahi ni se commitea).
+#   2. Agregar la clave PUBLICA en el servidor, en
+#      /etc/ssh/tector_keys/<usuario>.
+#   3. Guardar las host keys del servidor en el known_hosts del usuario:
+#      ssh-keyscan tectorserver.tail97f604.ts.net >> ~/.ssh/known_hosts
+#   4. Copiar este archivo a ~/.config/rclone/rclone.conf, chmod 600.
+#   5. Verificar: rclone lsd servidor:data
+[servidor]
+type = sftp
+host = tectorserver.tail97f604.ts.net
+user = tector1
+key_file = ~/.ssh/id_ed25519_servidor
+# known_hosts_file por defecto (~/.ssh/known_hosts): rclone verifica la
+# identidad del servidor, no dejar en modo inseguro.
