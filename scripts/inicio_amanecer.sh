@@ -1,6 +1,8 @@
 #!/bin/bash
 
 export RCLONE_CONFIG=/home/lsd/.config/rclone/rclone.conf
+# Servidor caido/apagado: fallar rapido en vez de colgar todo el timeout.
+export RCLONE_CONTIMEOUT=15s
 export HOME=/home/lsd
 
 SYNC_REMOTE=$(awk -F'=' '/^SYNC_REMOTE/{print $2}' /home/lsd/config_general.txt | tr -d ' \r')
