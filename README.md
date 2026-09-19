@@ -30,7 +30,7 @@ Una vez flasheada la microSD, insertarla en la Raspberry Pi y encenderla.
 
 ### 2. TectorNET-Pi
 
-El motor de detección es [TectorNET-Pi](https://github.com/LSDArroyoGold/TectorNET-Pi). Clonarlo en `/home/lsd/TectorNET-Pi` y seguir su README para instalar el servicio `TectorNET-Pi.service`. No se usa BirdNET-Pi ni ninguno de sus servicios web.
+El motor de detección es TectorNET-Pi. Clonarlo en `/home/lsd/TectorNET-Pi` desde el servidor (`git clone -b stable tectorgit@100.83.125.103:tectornet-pi.git`, una vez hecha el alta de clave del paso 9) y seguir su README para instalar el servicio `TectorNET-Pi.service`. No se usa BirdNET-Pi ni ninguno de sus servicios web.
 
 ### 3. Paquetes del sistema
 
@@ -102,7 +102,7 @@ Si la PiJuice responde sin errores, la instalación fue exitosa.
 
 ### 7. Clonar el repositorio
 
-Clonar este repositorio en la Raspberry Pi:
+Clonar este repositorio (repositorio privado: hace falta acceso a la organización LSDArroyoGold):
 
 ```bash
 cd /home/lsd
@@ -127,7 +127,7 @@ sudo cp /home/lsd/LSD-Tector1.1/systemd/sync-rtc.service /etc/systemd/system/
 sudo cp /home/lsd/LSD-Tector1.1/systemd/hotspot.service /etc/systemd/system/
 ```
 
-Una vez copiado todo, borrar el clon — en la Pi no queda ninguna carpeta del repositorio, todos los archivos operativos viven sueltos directamente en `/home/lsd/` (`actualizar_repo.sh`, ver paso 15, tampoco necesita el clon: se actualiza descargando archivo por archivo):
+Una vez copiado todo, borrar el clon — en la Pi no queda ninguna carpeta del repositorio, todos los archivos operativos viven sueltos directamente en `/home/lsd/` (`actualizar_repo.sh`, ver paso 15, tampoco necesita el clon: mantiene un caché git aparte, `/home/lsd/.software.git`):
 
 ```bash
 rm -rf /home/lsd/LSD-Tector1.1
@@ -148,7 +148,7 @@ sudo systemctl daemon-reload
 
 ### 8. rclone y servidor de almacenamiento
 
-Google Drive ya no se usa. Las detecciones, los logs y los horarios viajan por SFTP al servidor del laboratorio (`tectorserver`, Debian, accesible por Tailscale). Cada dispositivo tiene su propio usuario SFTP enjaulado (`tector1`, `tector2`, `tectormini`) que solo escribe en su carpeta `data/`.
+Las detecciones, los logs y los horarios viajan por SFTP al servidor del laboratorio (`tectorserver`, Debian, accesible por Tailscale). Cada dispositivo tiene su propio usuario SFTP enjaulado (`tector1`, `tector2`, `tectormini`) que solo escribe en su carpeta `data/`.
 
 ```bash
 sudo apt install rclone
@@ -160,7 +160,7 @@ chmod 600 ~/.config/rclone/rclone.conf
 cat ~/.ssh/id_ed25519_servidor.pub
 ```
 
-La clave privada nunca sale de la Pi. La clave **pública** hay que agregarla en el servidor, en `/etc/ssh/tector_keys/tector1`. Se usa la IP de Tailscale (100.83.125.103) y no el nombre, porque el nombre público resuelve a otra IP en equipos sin MagicDNS. Verificar:
+La clave privada nunca sale de la Pi. La clave **pública** hay que agregarla en el servidor en dos lugares: `/etc/ssh/tector_keys/tector1` (SFTP) y `/srv/git/.ssh/authorized_keys` (usuario `tectorgit`, actualizaciones de software; ver `TectorHub-v2/docs/servicio-git.md`). Se usa la IP de Tailscale (100.83.125.103) y no el nombre, porque el nombre público resuelve a otra IP en equipos sin MagicDNS. Verificar:
 
 ```bash
 rclone lsd servidor:data
@@ -326,7 +326,7 @@ sudo systemctl enable hotspot.service
 
 ### 14. Configurar el crontab
 
-El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube a Drive las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, por la cuota de Drive, ver la nota sobre `client_id`/`client_secret` en el paso 9), la mayoría de las detecciones ya están arriba de todas formas.
+El crontab define las tareas periódicas del sistema. Los cuatro scripts principales (`cierre_amanecer.sh`, `cierre_atardecer.sh`, `inicio_amanecer.sh`, `inicio_atardecer.sh`) y la rutina del botón deben ejecutarse cada minuto. Cada uno verifica internamente si la hora actual coincide con su horario configurado (o si `CIERRE_FORZADO` fue activado, en el caso de los `cierre_*.sh`) y, de ser así, ejecuta su rutina. `chequeo_bateria.sh` corre cada 5 minutos y mide la batería mientras hay una ventana activa. `sincronizar_detecciones.sh` también corre cada 5 minutos y, mientras hay una ventana activa, sube al servidor las detecciones ya grabadas hasta ese momento — así no se acumula todo para un único `rclone copy` grande al final de la ventana, y si la subida final de `cierre_*.sh` llegara a fallar (por ejemplo, servidor apagado), la mayoría de las detecciones ya están arriba de todas formas.
 
 Abrir el crontab del usuario `lsd`:
 
@@ -373,7 +373,7 @@ sudo systemctl enable cron
 sudo systemctl start cron
 ```
 
-**Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`. Este script no mantiene ningún clon del repositorio en la Pi: consulta la API de GitHub para saber cuál es el último commit de la rama `main`, lo compara contra el último que aplicó (guardado en `/home/lsd/.ultima_actualizacion`) y, solo si cambió, descarga cada archivo de `scripts/`, `python/` y `systemd/` directamente desde GitHub (`raw.githubusercontent.com`) y los deja en su ubicación activa en `/home/lsd/`. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Como el repo es público, no requiere ninguna credencial en la Pi, ni `git` instalado más allá de lo necesario para el paso 8. Para publicar una actualización, simplemente hacer `git push` a la rama `main` de este repositorio — el dispositivo la va a levantar en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
+**Actualización automática del dispositivo:** al final de cada `inicio_amanecer.sh`/`inicio_atardecer.sh` exitoso (con conexión), el dispositivo corre `actualizar_repo.sh`. Este script no mantiene ningún clon del repositorio en la Pi: le pregunta al servidor Tector (`tectorgit@100.83.125.103:tector1.git`, rama `stable`) cuál es el último commit, lo compara contra el último que aplicó (guardado en `/home/lsd/.ultima_actualizacion`) y, solo si cambió, lo trae a un caché git local sin working tree (`/home/lsd/.software.git`) y deja cada archivo de `scripts/`, `python/` y `systemd/` en su ubicación activa en `/home/lsd/`. Nunca toca `config_general.txt` ni `config_horarios.txt` (esos archivos guardan estado en vivo del dispositivo, no solo configuración). Autentica con la misma clave `~/.ssh/id_ed25519_servidor` del SFTP; en el servidor esa clave está registrada además para el usuario `tectorgit` con un comando forzado que solo permite leer (`git-upload-pack`) el repo de su capa y el del motor — no puede escribir ni ver nada más. La rama `stable` del servidor es un espejo del `main` de GitHub (sincronizado cada 5 minutos) que solo avanza si el commit nuevo pasa `bash -n` en los `.sh` y `py_compile` en los `.py`: un commit roto no llega a ningún dispositivo. Para publicar una actualización, hacer `git push` a `main` en GitHub (repo privado) — en unos minutos queda en el servidor y el dispositivo la levanta en su próxima ventana con conexión (hasta ~12 h de demora, no es instantáneo).
 
 ### 15. Carpetas en el servidor
 

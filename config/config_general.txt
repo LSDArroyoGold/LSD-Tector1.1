@@ -7,7 +7,7 @@ UMBRAL_BATERIA = 15
 VENTANA_ACTIVA = NONE
 CIERRE_FORZADO = FALSE
 
-# Servidor de almacenamiento (Google Drive ya no se usa). Remoto rclone
+# Servidor de almacenamiento. Remoto rclone
 # (sftp, ver config/rclone.conf.ejemplo) y carpeta destino dentro de el.
 # Los scripts usan estos valores por defecto si faltan.
 SYNC_REMOTE = servidor

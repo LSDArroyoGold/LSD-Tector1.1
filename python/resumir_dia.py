@@ -7,7 +7,7 @@ POR QUE EXISTE
 --------------
 En este equipo el registro de una deteccion ES su archivo de audio: la
 especie, la confianza y la hora estan en el nombre del mp3, y no hay ninguna
-otra base de datos. Ni en el equipo, ni en Drive, ni en el servidor.
+otra base de datos. Ni en el equipo ni en el servidor.
 
 Eso significa que el dia que un mp3 se va --por retencion, o porque alguien
 limpio una carpeta vieja a mano, que es la politica desde el 11/9/2026-- no

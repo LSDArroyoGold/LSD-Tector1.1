@@ -552,7 +552,7 @@ HTML_ESPERA = f"""<!DOCTYPE html>
             <span class="outcome-icon">{_CHECK_SVG}</span>
             <div>
                 <h2>Si la conexión fue exitosa</h2>
-                <p><strong>log_sistema.txt</strong> en Google Drive va a mostrar la conexión, y el equipo se apaga solo.</p>
+                <p><strong>log_sistema.txt</strong> en el servidor va a mostrar la conexión, y el equipo se apaga solo.</p>
             </div>
         </div>
     </div>
