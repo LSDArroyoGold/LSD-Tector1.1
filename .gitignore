@@ -4,3 +4,6 @@
 config/rclone.conf
 __pycache__/
 *.pyc
+
+# Pipe que crea liblgpio (RPi.GPIO) en el directorio de trabajo de cualquier script que use GPIO
+.lgd-nfy*
